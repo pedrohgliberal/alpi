@@ -437,8 +437,8 @@ def alpi_luks_aliases(volumes):
     lines = []
     for name, uuid in (volumes or {}).items():
         dev, mapper = f"/dev/disk/by-uuid/{uuid}", f"/dev/mapper/luks-{uuid}"
-        lines.append(f'alias open-{name}="udisksctl unlock -b {dev}; udisksctl mount -b {mapper}"')
-        lines.append(f'alias close-{name}="udisksctl unmount -b {mapper}; udisksctl lock -b {dev}"')
+        lines.append(f'alias open-{name}="udisksctl unlock -b {dev} && udisksctl mount -b {mapper}"')
+        lines.append(f'alias close-{name}="udisksctl unmount -b {mapper} && udisksctl lock -b {dev}"')
     return "\n".join(lines)
 
 

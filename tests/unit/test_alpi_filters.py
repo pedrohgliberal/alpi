@@ -493,9 +493,9 @@ UUID = "ad99f7e6-cf3a-4581-9c46-de99119b00d4"
 
 def test_luks_aliases_by_uuid():
     assert alpi.alpi_luks_aliases({"thevoid": UUID}).splitlines() == [
-        f'alias open-thevoid="udisksctl unlock -b /dev/disk/by-uuid/{UUID}; '
+        f'alias open-thevoid="udisksctl unlock -b /dev/disk/by-uuid/{UUID} && '
         f'udisksctl mount -b /dev/mapper/luks-{UUID}"',
-        f'alias close-thevoid="udisksctl unmount -b /dev/mapper/luks-{UUID}; '
+        f'alias close-thevoid="udisksctl unmount -b /dev/mapper/luks-{UUID} && '
         f'udisksctl lock -b /dev/disk/by-uuid/{UUID}"',
     ]
 
