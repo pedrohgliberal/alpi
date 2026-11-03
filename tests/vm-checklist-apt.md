@@ -41,7 +41,7 @@ Right after the first login, while unattended-upgrades may still be running:
 
 ```bash
 sudo apt-get install -y git   # Debian GNOME: there is no sudo yet, see the next item
-git clone https://github.com/phguima/alpi && cd alpi && ./bootstrap.sh
+git clone https://github.com/pedrohgliberal/alpi && cd alpi && ./bootstrap.sh
 ```
 
 - [ ] Debian GNOME (no sudo): install git as root (`su - -c "apt install -y git"`), clone, run

@@ -44,7 +44,7 @@ mkvm el10-kde-alpi Oracle10_64 "$HOME/Downloads/AlmaLinux-10-latest-x86_64-KDE.i
 ## Step 1: bootstrap (every VM)
 
 ```bash
-sudo dnf install -y git && git clone https://github.com/phguima/alpi && cd alpi && ./bootstrap.sh
+sudo dnf install -y git && git clone https://github.com/pedrohgliberal/alpi && cd alpi && ./bootstrap.sh
 ```
 
 The clone stays on `main`: the VMs test what is not released yet. A real machine runs

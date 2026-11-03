@@ -68,7 +68,7 @@ sure **Steam** is checked and **NVIDIA** is not vetoed (it is detected: no `-e i
 
 ```bash
 sudo apt-get install -y git
-git clone https://github.com/phguima/alpi && cd alpi && ./bootstrap.sh   # hostnames: debian-noir, kubuntu-noir
+git clone https://github.com/pedrohgliberal/alpi && cd alpi && ./bootstrap.sh   # hostnames: debian-noir, kubuntu-noir
 ansible-playbook site.yml -K 2>&1 | tee run0.log
 ```
 

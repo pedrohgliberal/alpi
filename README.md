@@ -3,7 +3,7 @@
 [![Project Status: Active](https://img.shields.io/badge/Project%20Status-Active-brightgreen.svg)](#-project-status)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-ALPI is a single Ansible post-install for Linux workstations. It detects the running distribution and applies the right setup for it. It unifies [AFPI](https://github.com/phguima/afpi) (Fedora) and [AAPI](https://github.com/phguima/aapi) (AlmaLinux 10), and is designed to take in other distributions: Debian 13 and Ubuntu 26.04 are in progress (their first releases wait for test VMs).
+ALPI is a single Ansible post-install for Linux workstations. It detects the running distribution and applies the right setup for it. It unifies [AFPI](https://github.com/pedrohgliberal/afpi) (Fedora) and [AAPI](https://github.com/pedrohgliberal/aapi) (AlmaLinux 10), and is designed to take in other distributions: Debian 13 and Ubuntu 26.04 are in progress (their first releases wait for test VMs).
 
 ## 📊 Project Status
 
@@ -21,7 +21,7 @@ ALPI is a single Ansible post-install for Linux workstations. It detects the run
 ## 🚀 Usage
 
 ```bash
-git clone https://github.com/phguima/alpi && cd alpi
+git clone https://github.com/pedrohgliberal/alpi && cd alpi
 ./update.sh                                      # the latest release (run it again before each update)
 ./bootstrap.sh                                   # installs Ansible, asks hostname/git identity, runs the picker
 ./pick.py                                        # optional: change the package/feature choice later
