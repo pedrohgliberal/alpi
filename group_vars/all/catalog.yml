@@ -21,11 +21,11 @@
 alpi_catalog:
   # --- Command line and system tools ---
   7zip:          {all: [7zip, 7zip-standalone]}   # Fedora 44: p7zip and p7zip-plugins are only provides of these
+  btop:          {all: btop}                        # EPEL on EL
   curl:          {all: curl}
   fastfetch:     {all: fastfetch}
   forgejo-cli:   {all: {upstream: forgejo-cli}}     # fj; packaged by Ubuntu only, and old
   git:           {all: git}
-  htop:          {all: htop}
   hwinfo:        {all: hwinfo}
   imagemagick:   {rpm: ImageMagick, deb: imagemagick}                 # EPEL on EL
   lm-sensors:    {rpm: lm_sensors, deb: lm-sensors}

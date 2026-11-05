@@ -8,7 +8,7 @@ _apt_candidates: [brave-browser, code, gh, virtualbox-7.2, steam-installer, nvid
 # Expected full resolved sets (verify.yml), reviewed 2026-10-24: Debian 13 names checked with
 # apt-cache (main, contrib, non-free); KDE, GNOME and all hardware forced on in molecule.yml.
 _golden:
-  native: [7zip, 7zip-standalone, curl, fastfetch, git, htop, hwinfo, imagemagick, lm-sensors, nodejs, nvtop, pipx,
+  native: [7zip, 7zip-standalone, btop, curl, fastfetch, git, hwinfo, imagemagick, lm-sensors, nodejs, nvtop, pipx,
     potrace, python3-pip, shellcheck, testdisk, tmux, tuptime, unrar, unzip, vim, wl-clipboard, zsh, fonts-firacode, fonts-roboto,
     ffmpeg, gstreamer1.0-plugins-bad, gstreamer1.0-plugins-ugly, gstreamer1.0-libav, libheif-plugin-libde265,
     chkrootkit, lynis, rkhunter, unhide, argyll, brave-browser, brave-origin, chromium, gh, inkscape, code,

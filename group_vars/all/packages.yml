@@ -9,11 +9,11 @@
 packages_base:
   # Command line and system tools
   - 7zip
+  - btop
   - curl
   - fastfetch
   - forgejo-cli
   - git
-  - htop
   - hwinfo
   - imagemagick
   - lm-sensors
