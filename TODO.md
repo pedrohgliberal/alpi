@@ -35,6 +35,45 @@ container or VM before code relies on them. Consequences to keep in mind:
       release says Debian 13 (and Ubuntu 26.04, or a release of its own) is VM-checked; `v1.2.0`
       and `v1.3.0` shipped them as a preview (decided 2026-10-25).
 
+## 6. Ubuntu 24.04 LTS (after Phase 5's Ubuntu 26.04 VM checklist)
+
+A second Ubuntu LTS next to 26.04 (added 2026-11-05). Estimate: 1–2 days of code and container
+tests, plus Ubuntu 24.04 and Kubuntu 24.04 VMs. Checked in `ubuntu:24.04` (24.04.5) on
+2026-11-05:
+- `VERSION_ID` and Ansible's `distribution_version` are `24.04` on every point release (24.04.5
+  included), so a `"24.04"` support entry covers them all; release `noble`.
+- ansible-core 2.16.3 (as EL10: community.general 11.x), Python 3.12, classic `sudo` (sudo-rs
+  0.2.2 is only an option), systemd-zram-generator 1.1.2, pipx 1.4.3, dkms 3.0.11, Node.js 18.
+- Kubuntu: Plasma 5.27 (`kwin-wayland` 5.27.11, Konsole 23.08), whose default session is X11.
+- GNOME 46 with gnome-terminal, no Ptyxis.
+- Not packaged: `fastfetch`, `flatseal`. `nvidia-driver-615-open` exists (590–615).
+- Kernel: GA 6.8 (`linux-headers-generic`); installs from later point-release ISOs may run the
+  HWE kernel *(check)*.
+
+### Phase 6 — port and tests
+
+- [ ] **Support matrix:** let a distro entry list exact versions (`Ubuntu: {version: ["24.04",
+      "26.04"]}`) in `alpi_support` and `pick.py`, with unit tests; `unsupported` keeps refusing
+      the interim releases.
+- [ ] **Per-version Ubuntu settings:** `alpi_catalog_keys` (`ubuntu2404, ubuntu, deb, all`) and
+      Oracle's VirtualBox suite (`noble`) per version, out of `group_vars/os_Ubuntu/main.yml`
+      (e.g. `group_vars/os_Ubuntu_24`/`_26`, from `env_setup`'s `group_by`).
+- [ ] **Catalog:** `ubuntu2404` values: Flatseal as a Flatpak, fastfetch from upstream or `~`,
+      the NVIDIA pin; check every name with apt (all four components, Oracle's `noble`).
+- [ ] **HWE kernel:** check on a 24.04.5 install which kernel it runs; if HWE, the headers and
+      Canonical's NVIDIA modules must follow the running kernel's flavour
+      (`linux-headers-generic-hwe-24.04`, `linux-modules-nvidia-NNN-open-generic-hwe-24.04`).
+      `alpi-kvm.conf` is needed there below 6.16, as on Debian.
+- [ ] **Plasma 5.27:** decide the cedilla workaround for an X11 session (XWayland flags do
+      nothing there) and for Plasma 5's Wayland; check the Konsole profile and `konsolerc` on
+      Konsole 23.08.
+- [ ] **ansible-core 2.16 with apt:** the apt modules, `deb822_repository` and `site.yml`'s apt
+      defaults on Ubuntu's own 2.16 (`shared/verify_native_controller.yml`).
+- [ ] **Tests:** scenarios `ubuntu2404` and `ubuntu2404-personal`, plus 24.04 instances in
+      `bootstrap`, `secureboot` and `user`; `CLAUDE.md` updated.
+- [ ] **VM checklist:** `tests/vm-checklist-apt.md` on Ubuntu 24.04.5 and Kubuntu 24.04.5 (EFI +
+      Secure Boot), then a release.
+
 ## Maintenance
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
