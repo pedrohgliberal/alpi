@@ -26,6 +26,7 @@ container or VM before code relies on them. Consequences to keep in mind:
       (MOK enrollment and signed modules, `update-grub` and the menu, the reboot gate, the
       unattended-upgrades lock, the installer's own `sources.list`, cedilla and terminals in a
       session, the Antigravity IDE under AppArmor, `bootstrap.sh` without sudo). Fix what fails.
+      Passed: Kubuntu 26.04 (2026-11-05). Left: Debian 13 GNOME and KDE, Ubuntu 26.04.
 - [ ] **Steam on a hybrid NVIDIA laptop (Debian, Ubuntu):** ALPI's launcher copy with
       `PrefersNonDefaultGPU` (steam-installer's has none) starts Steam on the NVIDIA GPU: check on
       real hardware (`nvidia-smi` lists Steam) with Debian's 550 and Ubuntu's 615 drivers; drop the
