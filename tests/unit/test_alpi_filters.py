@@ -2,6 +2,7 @@
 
 import base64
 import importlib.util
+import json
 import subprocess
 from pathlib import Path
 
@@ -206,7 +207,7 @@ class TestFeatures:
     def test_filters_are_registered(self):
         assert set(alpi.FilterModule().filters()) == {
             "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_repos", "alpi_feature_ids",
-            "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name",
+            "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name", "alpi_pipx_plan",
             "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing",
         }
 
@@ -214,6 +215,8 @@ class TestFeatures:
 # --- alpi_support ------------------------------------------------------------------------------
 SUPPORT = {"Fedora": {"min": 41, "max": 44}, "AlmaLinux": {"min": 10, "max": 10},
            "Ubuntu": {"version": "26.04"}}
+# Two exact versions (Ubuntu's LTS releases), as group_vars/all/support.yml lists them
+SUPPORT_LTS = {"Debian": {"min": 13, "max": 13}, "Ubuntu": {"version": ["24.04", "26.04"]}}
 
 
 @pytest.mark.parametrize("distro,version,major,expected", [
@@ -229,6 +232,22 @@ SUPPORT = {"Fedora": {"min": 41, "max": 44}, "AlmaLinux": {"min": 10, "max": 10}
 ])
 def test_support(distro, version, major, expected):
     assert alpi.alpi_support(SUPPORT, distro, version, major)["supported"] is expected
+
+
+@pytest.mark.parametrize("version,major,expected", [
+    ("24.04", "24", True),   # every point release: 24.04.5's VERSION_ID is 24.04
+    ("26.04", "26", True),
+    ("24.10", "24", False),  # interim releases share the LTS's major
+    ("25.10", "25", False),
+    ("26.10", "26", False),
+    ("22.04", "22", False),
+])
+def test_support_exact_versions_list(version, major, expected):
+    assert alpi.alpi_support(SUPPORT_LTS, "Ubuntu", version, major)["supported"] is expected
+
+
+def test_support_lists_several_exact_versions():
+    assert alpi.alpi_support(SUPPORT_LTS, "Fedora", "44", "44")["listed"] == "Debian 13, Ubuntu 24.04 and 26.04"
 
 
 def test_support_lists_ranges_single_majors_and_exact_versions():
@@ -769,3 +788,47 @@ def test_zram_own_config_beats_false():
 ])
 def test_zram_hibernate_reminder(swaps, hibernate, expected):
     assert zram_plan(swaps=swaps, hibernate=hibernate)["hibernate_reminder"] is expected
+
+
+# --- alpi_pipx_plan ----------------------------------------------------------------------------
+# `pipx list --json` as pipx 1.4.3 (Ubuntu 24.04) prints it, trimmed to what the plan reads:
+# cowsay with six injected, markdown installed with an extra
+PIPX_LIST = {"pipx_spec_version": "0.1", "venvs": {
+    "cowsay": {"metadata": {"main_package": {"package": "cowsay", "package_or_url": "cowsay"},
+                            "injected_packages": {"six": {"package": "six"}}}},
+    "markdown": {"metadata": {"main_package": {"package": "markdown", "package_or_url": "markdown[extra]"},
+                              "injected_packages": {}}}}}
+
+
+def test_pipx_plan_nothing_installed_yet():
+    for listing in ("", None, {"pipx_spec_version": "0.1", "venvs": {}}):
+        assert alpi.alpi_pipx_plan(listing, ["uv", "notebooklm-py[browser]"], {"notebooklm-py": ["playwright"]},
+                                   ["nano"]) == {
+            "install": ["uv", "notebooklm-py[browser]"],
+            "inject": [{"app": "notebooklm-py", "packages": ["playwright"]}],
+            "uninstall": []}
+
+
+def test_pipx_plan_reads_the_json_text():
+    assert alpi.alpi_pipx_plan(json.dumps(PIPX_LIST), ["cowsay"]) == {"install": [], "inject": [], "uninstall": []}
+
+
+def test_pipx_plan_everything_in_place_runs_nothing():
+    assert alpi.alpi_pipx_plan(PIPX_LIST, ["cowsay", "Markdown[extra]"], {"cowsay": ["six"]}) == \
+        {"install": [], "inject": [], "uninstall": []}
+
+
+def test_pipx_plan_installs_missing_injects_missing_removes_present():
+    plan = alpi.alpi_pipx_plan(PIPX_LIST, ["cowsay", "uv"], {"cowsay": ["six", "Pyyaml>=6"], "uv": ["x"],
+                                                            "not-wanted": ["y"]},
+                               ["markdown", "nothere"])
+    assert plan == {"install": ["uv"],
+                    "inject": [{"app": "cowsay", "packages": ["Pyyaml>=6"]}, {"app": "uv", "packages": ["x"]}],
+                    "uninstall": ["markdown"]}
+
+
+def test_pipx_plan_names_compare_as_pypi_does():
+    # PEP 503: notebooklm_py, NotebookLM.py and notebooklm-py are one project
+    listing = {"venvs": {"notebooklm_py": {"metadata": {"injected_packages": {"Playwright": {}}}}}}
+    assert alpi.alpi_pipx_plan(listing, ["notebooklm-py[browser]"], {"NotebookLM.py": ["playwright"]},
+                               ["NOTEBOOKLM-PY"]) == {"install": [], "inject": [], "uninstall": ["NOTEBOOKLM-PY"]}

@@ -44,3 +44,11 @@ upstream_sources:
     asset: '^forgejo-cli-x86_64-linux[.]tar[.]gz$'
     member: fj
     dest: /usr/local/bin/fj
+  # fastfetch where the distro has no package (Ubuntu 24.04 only; packaged from 24.10 on). The
+  # regular build, not the "polyfilled" one for older glibc; GitHub publishes the digest.
+  fastfetch:
+    type: release_binary
+    release_api: "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest"
+    asset: '^fastfetch-linux-amd64[.]tar[.]gz$'
+    member: fastfetch-linux-amd64/usr/bin/fastfetch
+    dest: /usr/local/bin/fastfetch

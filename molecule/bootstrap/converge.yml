@@ -115,8 +115,9 @@
         quiet: true
 
 # become as a user with a password, through the repo's inventory.ini and ansible.cfg and the
-# ansible-core bootstrap.sh installed. Ubuntu's sudo is sudo-rs, which wraps become's prompt so
-# Ansible times out on it: the inventory must pick sudo.ws there, and plain sudo where it is absent.
+# ansible-core bootstrap.sh installed. Ubuntu 26.04's sudo is sudo-rs, which wraps become's prompt
+# so Ansible times out on it: the inventory must pick sudo.ws there, and plain sudo where it is
+# absent (Ubuntu 24.04's sudo is the classic one, with no sudo.ws).
 - name: Bootstrap | become with a password
   hosts: all:!alpi-bootstrap-debian13-nosudo
   tasks:
@@ -137,13 +138,14 @@
       register: _become_exe
       changed_when: false
 
-    - name: Bootstrap | Reached root, with sudo.ws on Ubuntu and sudo on Fedora
+    - name: Bootstrap | Reached root, with sudo.ws on Ubuntu 26.04 and sudo on Fedora and Ubuntu 24.04
       ansible.builtin.assert:
         that:
           - _become.rc == 0
           - "'uid=0(root)' in _become.stdout"
-          - "'ubuntu' not in inventory_hostname or '\"ansible_become_exe\": \"sudo.ws\"' in _become_exe.stdout"
-          - "'fedora' not in inventory_hostname or '\"ansible_become_exe\": \"sudo\"' in _become_exe.stdout"
+          - "'ubuntu2604' not in inventory_hostname or '\"ansible_become_exe\": \"sudo.ws\"' in _become_exe.stdout"
+          - "('fedora' not in inventory_hostname and 'ubuntu2404' not in inventory_hostname)
+             or '\"ansible_become_exe\": \"sudo\"' in _become_exe.stdout"
         fail_msg: "rc {{ _become.rc }}: {{ _become.stdout }} {{ _become.stderr }} / {{ _become_exe.stdout }}"
         quiet: true
 

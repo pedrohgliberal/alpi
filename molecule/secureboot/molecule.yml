@@ -13,6 +13,7 @@
 #   alpi-sb-ubuntu2604: Secure Boot, NVIDIA and VirtualBox on: shim-signed's key (real
 #                       update-secureboot-policy --new-key), requested once for DKMS and
 #                       VirtualBox; NVIDIA's options for Canonical's module (nvidia)
+#   alpi-sb-ubuntu2404: the same on Ubuntu 24.04 (its shim-signed 1.58)
 # Where VirtualBox is on, /etc/modprobe.d/alpi-kvm.conf keeps VMX off until a KVM guest runs.
 # converge.yml renames the native packages on two instances (EL's VirtualBox as apt's
 # virtualbox-7.2, the NVIDIA driver without akmod-nvidia): the roles gate on catalog ids.
@@ -49,6 +50,12 @@ platforms:
     command: sleep infinity
     security_opts: [unmask=/sys/firmware, label=disable]
     volumes: ["${MOLECULE_SCENARIO_DIRECTORY}/firmware:/sys/firmware:ro", "alpi-dnf-sb-ubuntu2604:/var/cache/apt"]
+  - name: alpi-sb-ubuntu2404
+    image: docker.io/library/ubuntu:24.04
+    pre_build_image: true
+    command: sleep infinity
+    security_opts: [unmask=/sys/firmware, label=disable]
+    volumes: ["${MOLECULE_SCENARIO_DIRECTORY}/firmware:/sys/firmware:ro", "alpi-dnf-sb-ubuntu2404:/var/cache/apt"]
 provisioner:
   options:
     extra-vars: '{"is_nvidia": true, "is_asus": false, "is_intel": false, "is_amd": false}'

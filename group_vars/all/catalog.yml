@@ -3,8 +3,10 @@
 # Keys are tried in the order of alpi_catalog_keys (group_vars/os_*), most specific first:
 #   Fedora: fedora, rpm, all        AlmaLinux 10: el10, el, rpm, all
 #   Debian 13: debian13, debian, deb, all       Ubuntu 26.04: ubuntu2604, ubuntu, deb, all
+#   Ubuntu 24.04: ubuntu2404, ubuntu, deb, all
 # 'rpm' holds the RPM names Fedora and EL share, 'deb' those Debian and Ubuntu share; 'all' only
-# names that exist on every distro (checked in debian:13 and ubuntu:26.04 on 2026-10-24/25).
+# names that exist on every distro (checked in debian:13 and ubuntu:26.04 on 2026-10-24/25, and in
+# ubuntu:24.04 on 2026-11-05: an 'ubuntu2404' value where 24.04 lacks the name).
 # Values: a native package name, a list of names, {flatpak: <app id>}, {pipx: <PyPI spec>} (a
 # Python app installed for the user by roles/pipx; extras allowed: "markitdown[all]"),
 # {upstream: <source id>} (from the vendor's own releases, group_vars/all/upstream.yml), or ~
@@ -23,7 +25,7 @@ alpi_catalog:
   7zip:          {all: [7zip, 7zip-standalone]}   # Fedora 44: p7zip and p7zip-plugins are only provides of these
   btop:          {all: btop}                        # EPEL on EL
   curl:          {all: curl}
-  fastfetch:     {all: fastfetch}
+  fastfetch:     {all: fastfetch, ubuntu2404: {upstream: fastfetch}}   # packaged from Ubuntu 24.10 on
   forgejo-cli:   {all: {upstream: forgejo-cli}}     # fj; packaged by Ubuntu only, and old
   git:           {all: git}
   hwinfo:        {all: hwinfo}
@@ -93,7 +95,7 @@ alpi_catalog:
 
   # --- GNOME ---
   extension-manager:   {all: {flatpak: com.mattjakeman.ExtensionManager}}
-  flatseal:            {all: flatseal}
+  flatseal:            {all: flatseal, ubuntu2404: {flatpak: com.github.tchx84.Flatseal}}   # packaged from Ubuntu 24.10 on
   fragments:           {all: {flatpak: de.haeckerfelix.Fragments}}
   gnome-tweaks:        {all: gnome-tweaks}
   video-downloader:    {all: {flatpak: com.github.unrud.VideoDownloader}}
@@ -142,7 +144,10 @@ alpi_catalog:
                  # A pinned branch with open modules, bumped on purpose (PROPOSAL decision 4 of
                  # 2026-10-24); Canonical's signed modules provide nvidia-dkms-NNN-open, so nothing
                  # is built (checked 2026-10-25: 615 is the newest branch, 610 transitional)
-                 ubuntu2604: [nvidia-driver-615-open, linux-modules-nvidia-615-open-generic, "libnvidia-gl-615:i386"]}
+                 ubuntu2604: [nvidia-driver-615-open, linux-modules-nvidia-615-open-generic, "libnvidia-gl-615:i386"],
+                 # The same branch on 24.04 (checked 2026-11-05: 590-615 open). The modules match
+                 # the GA kernel (6.8); an HWE install needs the -generic-hwe-24.04 build *(check)*
+                 ubuntu2404: [nvidia-driver-615-open, linux-modules-nvidia-615-open-generic, "libnvidia-gl-615:i386"]}
   # 32-bit libraries above: Steam's (i386 multiarch, apt_i386_ids)
   nvidia-build:  {fedora: [akmods, kmodtool, gcc, kernel-devel, kernel-headers], el: ~, debian: [linux-headers-amd64, dkms],
                   ubuntu: []}

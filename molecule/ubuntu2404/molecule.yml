@@ -1,0 +1,19 @@
+---
+# Ubuntu 24.04 (24.04.5) as ubuntu2604, with debian13's playbooks (each instance's expected values
+# in its host_vars): resolution with KDE, GNOME and all hardware forced on, compared with reviewed
+# golden values; roles/repos (components; VS Code's vscode.sources; Oracle's noble suite); every
+# name of the golden set checked with apt, nothing installed.
+platforms:
+  - name: alpi-ubuntu2404
+    image: docker.io/library/ubuntu:24.04
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-ubuntu2404:/var/cache/apt"]
+provisioner:
+  options:
+    # kwin_version: Kubuntu 24.04's (4:5.27.11-0ubuntu3, Plasma 5): the cedilla's XWayland layer is on
+    extra-vars: '{"is_kde": true, "is_gnome": true, "is_nvidia": true, "is_asus": true, "is_intel": true, "is_amd": true, "kwin_version": "5.27.11"}'
+  playbooks:
+    prepare: ../debian13/prepare.yml
+    converge: ../debian13/converge.yml
+    verify: ../debian13/verify.yml

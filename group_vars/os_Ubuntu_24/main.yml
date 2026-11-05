@@ -1,0 +1,4 @@
+---
+# Ubuntu 24.04 LTS "Noble Numbat" (every point release: VERSION_ID is 24.04 on 24.04.5 too): what
+# differs from 26.04 (the rest in group_vars/os_Ubuntu). TODO.md, Phase 6.
+alpi_catalog_keys: [ubuntu2404, ubuntu, deb, all]

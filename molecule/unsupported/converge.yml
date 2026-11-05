@@ -9,4 +9,4 @@
           name: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
           expect:
             - "ALPI does not support {{ 'Debian 12' if 'debian12' in inventory_hostname else 'Ubuntu 26.10' }}"
-            - "Supported: Fedora 41-44, AlmaLinux 10, Debian 13, Ubuntu 26.04"
+            - "Supported: Fedora 41-44, AlmaLinux 10, Debian 13, Ubuntu 24.04 and 26.04"

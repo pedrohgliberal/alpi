@@ -3,8 +3,9 @@
 # host_vars/127.0.0.1.yml, asks the questions (bad answers are asked again), writes
 # host_vars/127.0.0.1/bootstrap.yml and runs the picker (text mode), which writes selection.yml. The answers are piped through script(1), which gives the
 # script a terminal; a pass-through sudo shim keeps the real sudo from swallowing them.
-#   alpi-bootstrap-fedora44, alpi-bootstrap-debian13, alpi-bootstrap-ubuntu2604: the whole flow
-#                                (dnf; apt with the distro's own ansible-core)
+#   alpi-bootstrap-fedora44, alpi-bootstrap-debian13, alpi-bootstrap-ubuntu2604,
+#   alpi-bootstrap-ubuntu2404:   the whole flow (dnf; apt with the distro's own ansible-core,
+#                                2.16 on Ubuntu 24.04: community.general 11.x)
 #   alpi-bootstrap-debian13-nosudo: sudo removed (a root password set at install): the script stops
 #                                before installing anything and prints the su - command
 platforms:
@@ -23,6 +24,11 @@ platforms:
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-bootstrap-ubuntu2604:/var/cache/apt"]
+  - name: alpi-bootstrap-ubuntu2404
+    image: docker.io/library/ubuntu:24.04
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-bootstrap-ubuntu2404:/var/cache/apt"]
   - name: alpi-bootstrap-debian13-nosudo
     image: docker.io/library/debian:13
     pre_build_image: true

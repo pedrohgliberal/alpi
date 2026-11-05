@@ -1,5 +1,5 @@
 ---
-- name: Verify | Personal machine on apt (debian13-personal, ubuntu2604-personal)
+- name: Verify | Personal machine on apt (debian13-personal, ubuntu2604-personal, ubuntu2404-personal)
   hosts: all
   tasks:
     - name: Verify | Installed
@@ -43,3 +43,33 @@
           - "'alias lls=' in _deb_zshrc.stdout"
         fail_msg: "{{ _deb_zshrc.stdout }}"
         quiet: true
+
+
+    # roles/packages installs Flatpak and adds Flathub when an app is a Flatpak (the images have
+    # neither): Bitwarden and ZapZap are selected here
+    - name: Verify | List the Flatpak remotes
+      ansible.builtin.command: flatpak remotes --columns=name
+      register: _deb_remotes
+      changed_when: false
+
+    - name: Verify | Flatpak installed, with Flathub
+      ansible.builtin.assert:
+        that: "'flathub' in _deb_remotes.stdout_lines"
+        fail_msg: "{{ _deb_remotes.stdout }}"
+        quiet: true
+
+    # roles/pipx with the distro's pipx (Ubuntu 24.04's 1.4.3): what custom.yml injects is in
+    - name: Verify | Read the user's pipx apps
+      ansible.builtin.command: pipx list --json
+      become: true
+      become_user: "{{ user_name }}"
+      register: _deb_pipx_json
+      changed_when: false
+      when: pipx_inject.cowsay is defined
+
+    - name: Verify | six injected into cowsay
+      ansible.builtin.assert:
+        that: "'six' in (_deb_pipx_json.stdout | from_json).venvs.cowsay.metadata.injected_packages"
+        fail_msg: "{{ _deb_pipx_json.stdout }}"
+        quiet: true
+      when: pipx_inject.cowsay is defined

@@ -1,7 +1,7 @@
 ---
 # An unsupported distro must stop in env_setup before anything else runs: releases of listed
-# distros outside their entries, Debian 12 (below the range) and Ubuntu 26.10 (the same major as
-# the exact 26.04).
+# distros outside their entries, Debian 12 (below the range) and Ubuntu 26.10 (an interim release
+# with the same major as the listed 26.04).
 platforms:
   - name: alpi-unsupported-debian12
     image: docker.io/library/debian:12

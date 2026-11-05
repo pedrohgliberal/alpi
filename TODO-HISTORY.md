@@ -218,6 +218,20 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   containers skip (`zramctl`, `swapon --show` priority 100, `vm.swappiness` 180,
   `vm.page-cluster` 0; a second run reports no changes) (`1de0a02`).
 
+## 7. Ubuntu 24.04 LTS
+
+- **2026-11-05** Ubuntu 24.04 LTS (every point release) in the support matrix, next to 26.04:
+  `alpi_support` takes a list of exact versions (interim releases still refused); catalog keys
+  per release in `group_vars/os_Ubuntu_24`/`_26`; Oracle's VirtualBox suite from
+  `distribution_release`; `ubuntu2404` catalog values (fastfetch from its releases, Flatseal as a
+  Flatpak, the NVIDIA 615 pin); scenarios `ubuntu2404` and `ubuntu2404-personal`, 24.04 instances
+  in `bootstrap` (classic sudo) and `secureboot`. ansible-core 2.16 with apt checked through
+  `ubuntu2404-personal`'s native-controller resolution and `bootstrap`
+  (`feat(ubuntu): Ubuntu 24.04 LTS support`).
+- **2026-11-05** `roles/pipx` runs the distro's pipx as commands, planned by `alpi_pipx_plan` from
+  `pipx list --json`: community.general 13.x's module refuses pipx older than 1.7.0, and Ubuntu
+  24.04 has 1.4.3 in every pocket (`feat(ubuntu): Ubuntu 24.04 LTS support`).
+
 ## Maintenance
 
 - **2026-10-23** VirtualBox vs KVM on kernel 6.12+: kvm keeps VMX on from load

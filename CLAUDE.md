@@ -22,7 +22,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
 ## Layout (skeleton, 2026-10-05)
 
 - `site.yml`: `tasks/env_setup.yml` (support matrix assert, `alpi_support`: `{min, max}` majors or
-  an exact `{version}` → user/hardware/DE facts, ported from
+  exact `{version}`s, one or a list (Ubuntu's LTS releases; a point release such as 24.04.5 reports
+  24.04) → user/hardware/DE facts, ported from
   AFPI → `group_by` into `family_<os_family>`, `os_<distro>`, `os_<distro>_<major>` → machine-settings assert →
   `tasks/resolve.yml`), then the roles (`repos`, `update`, `boot`, `memory`, `akmods_mok`, `virtualbox`,
   `packages`, `upstream`, `common`, `zsh`, `desktop`, `pipx`, `ai_tools`, `clamav`, `asus`, `nvidia` so far),
@@ -227,9 +228,14 @@ parity; code comes in step by step, ported from them. Changes made there in the 
 - `roles/pipx` (after `desktop`, so `pipx ensurepath` finds the user's `.zshrc`): Python apps
   for the user from catalog values `{pipx: <PyPI spec>}` (extras allowed) or `pipx:<spec>` in
   `custom.yml`; `pipx_inject` and `pipx_playwright_browsers` (`group_vars/all/pipx.yml`) apply
-  only to installed apps; `packages_absent` removes pipx apps too. Names are checked on PyPI in
+  only to installed apps; `packages_absent` removes pipx apps too. The distro's own pipx run as
+  commands, not `community.general.pipx` (13.x refuses pipx older than 1.7.0; Ubuntu 24.04 has
+  1.4.3 in every pocket): `alpi_pipx_plan` reads `pipx list --json` (spec 0.1 from 1.4.3 on;
+  names compared as PyPI does) and gives what to install, inject and uninstall, so a second run
+  runs nothing. Names are checked on PyPI in
   `roles/packages/tasks/check.yml` (`alpi_pipx_name` strips extras/specifiers). The test
-  scenarios skip the three large apps (`catalog` checks them on PyPI) and install `pipx:cowsay`.
+  scenarios skip the three large apps (`catalog` checks them on PyPI) and install `pipx:cowsay`
+  (`ubuntu2404-personal` also injects `six` into it).
 - `roles/ai_tools` (after `zsh`: the Antigravity CLI's shell setup edits `.zshrc`, which must
   already come from the Oh My Zsh template; skipped when the user is root): features without
   catalog packages, so gated on `alpi_feature` itself (no ids to gate on), `claude_code`, `antigravity_cli` (vendor installers piped to bash as the user
@@ -265,11 +271,14 @@ parity; code comes in step by step, ported from them. Changes made there in the 
 - Catalog values per distro may be `{native: …, repo: …}`: a repository only that distro needs
   (Oracle VirtualBox on EL). Catalog keys (`alpi_catalog_keys` per distro): Fedora
   `fedora, rpm, all`, EL `el10, el, rpm, all`, Debian 13 `debian13, debian, deb, all`, Ubuntu
-  26.04 `ubuntu2604, ubuntu, deb, all` (both in the matrix; first releases after the VM
-  checklist); `rpm` holds RPM names Fedora and EL share, `deb` those Debian and Ubuntu share,
+  26.04 `ubuntu2604, ubuntu, deb, all`, Ubuntu 24.04 `ubuntu2404, ubuntu, deb, all` (all in the
+  matrix; first releases after the VM checklist). Ubuntu's keys are per release, in
+  `group_vars/os_Ubuntu_24` and `os_Ubuntu_26` (env_setup's `os_<distro>_<major>` group; never the
+  same key in `os_Ubuntu`); Oracle's VirtualBox suite is `distribution_release`. 24.04 lacks
+  `fastfetch` (upstream release) and `flatseal` (Flatpak); `rpm` holds RPM names Fedora and EL share, `deb` those Debian and Ubuntu share,
   `all` only names that exist on all four (check a new `all:` name there). A new catalog id
-  needs a value for each (or `deb`/`all`), or `debian13`/`ubuntu2604` stop on it. Ubuntu's
-  NVIDIA branch is pinned in its `ubuntu2604` value (`nvidia-driver-NNN-open` with Canonical's
+  needs a value for each (or `deb`/`all`), or `debian13`/`ubuntu2604`/`ubuntu2404` stop on it. Ubuntu's
+  NVIDIA branch is pinned in its `ubuntu2604` and `ubuntu2404` values (`nvidia-driver-NNN-open` with Canonical's
   signed `linux-modules-nvidia-NNN-open-generic`, which provide `nvidia-dkms-NNN-open`: nothing
   is built), bumped on purpose; a literal, since `pick.py` reads the catalog untemplated.
 - `roles/nvidia` (after `packages`): power options in `nvidia_modprobe_conf`
@@ -373,21 +382,23 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     also resolve with the distro's own ansible-core, 2.19 and 2.20, through
     `shared/verify_native_controller.yml`, as `el10-work` does with 2.16),
     `ubuntu2604` (as `debian13`, with its playbooks: each instance's sources file, components and
-    candidates in its host_vars), `unsupported` (Debian 12, Ubuntu 26.10), `upstream` (`roles/upstream` on
+    candidates in its host_vars), `ubuntu2404` and `ubuntu2404-personal` (the same on Ubuntu
+    24.04, KWin pinned at Plasma 5's 5.27.11; the personal one resolves with 24.04's ansible-core
+    2.16), `unsupported` (Debian 12, Ubuntu 26.10), `upstream` (`roles/upstream` on
     AlmaLinux 10 against stand-in GitHub, Gitea and Forgejo releases served by `http.server` on
     127.0.0.1:8766: Roboto, tea (.xz + .sha256) and fj (.tar.gz) install v1, `side_effect.yml`
     publishes Roboto and tea v2, deletes fj and runs again (Molecule's side_effect step, added to
     the scenario's test_sequence): replaced, fj v1 back; forges unreachable keep v0,
     `packages_absent` removes them; the personal and work scenarios install the real releases), `bootstrap`
-    (bootstrap.sh with scripted answers, picker in text mode, on Fedora 44, Debian 13 and Ubuntu 26.04; a Debian
-    13 without sudo must stop before installing anything and print the `su -` command; on each of the three a user with a password then runs a become task through the repo's `inventory.ini` and `ansible.cfg`: Ubuntu's `sudo` is sudo-rs, which wraps become's prompt so Ansible times out, so the inventory picks `sudo.ws` where it exists), `common` (env_setup +
+    (bootstrap.sh with scripted answers, picker in text mode, on Fedora 44, Debian 13, Ubuntu 26.04 and 24.04 (classic sudo, no sudo.ws: the inventory picks `sudo`); a Debian
+    13 without sudo must stop before installing anything and print the `su -` command; on each of the others a user with a password then runs a become task through the repo's `inventory.ini` and `ansible.cfg`: Ubuntu's `sudo` is sudo-rs, which wraps become's prompt so Ansible times out, so the inventory picks `sudo.ws` where it exists), `common` (env_setup +
     `roles/common` on `almalinux/10-init` with systemd: static hostname via hostnamectl, git),
     `secureboot` (env_setup + `akmods_mok`, `virtualbox`, `nvidia`, nothing downloaded; converge
     renames EL's VirtualBox and Fedora's NVIDIA native packages, so the roles must gate on ids; Secure Boot
     detected from a fake EFI variable mounted over `/sys/firmware`: Fedora with Secure Boot and
     NVIDIA vetoed, Fedora without (and VirtualBox off: a stale `alpi-kvm.conf` removed), EL with,
     Debian with (DKMS key and Oracle key both enrolled, NVIDIA options for `nvidia-current`, a
-    stand-in for Debian's own `nvidia.conf` left alone), Ubuntu with (one shim-signed key,
+    stand-in for Debian's own `nvidia.conf` left alone), Ubuntu 26.04 and 24.04 with (one shim-signed key,
     requested once for DKMS and VirtualBox); fake `mokutil` in `files/` (state per key), real
     `kmodgenca`/`dkms`/`update-secureboot-policy`/openssl),
     `services` (env_setup + service roles on `almalinux/10-init` with systemd; prepare installs

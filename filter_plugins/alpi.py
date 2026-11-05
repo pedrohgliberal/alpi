@@ -83,12 +83,17 @@ def alpi_support(matrix, distro, version, major):
     """Whether the distro is in the support matrix, and the matrix as text for the error.
 
     matrix: {distro: {min: N, max: N}} (major versions, inclusive) or {distro: {version: "26.04"}}
-    (that exact distribution_version: Ubuntu's major is 26 for both 26.04 and 26.10).
-    Returns {"supported": bool, "listed": "Fedora 41-44, AlmaLinux 10, Ubuntu 26.04"}.
+    (that exact distribution_version: Ubuntu's major is 26 for both 26.04 and 26.10), or a list of
+    them ({version: ["24.04", "26.04"]}: two LTS releases, not the interim ones between).
+    Returns {"supported": bool, "listed": "Fedora 41-44, AlmaLinux 10, Ubuntu 24.04 and 26.04"}.
     """
+    def versions(entry):
+        v = entry["version"]
+        return [str(x) for x in v] if isinstance(v, (list, tuple)) else [str(v)]
+
     def text(name, entry):
         if "version" in entry:
-            return f"{name} {entry['version']}"
+            return f"{name} {' and '.join(versions(entry))}"
         lo, hi = entry["min"], entry["max"]
         return f"{name} {lo}" if lo == hi else f"{name} {lo}-{hi}"
 
@@ -96,7 +101,7 @@ def alpi_support(matrix, distro, version, major):
     if entry is None:
         supported = False
     elif "version" in entry:
-        supported = str(version) == str(entry["version"])
+        supported = str(version) in versions(entry)
     else:
         supported = str(major).isdigit() and int(entry["min"]) <= int(major) <= int(entry["max"])
     return {"supported": supported,
@@ -475,6 +480,43 @@ def alpi_pipx_name(spec):
     return re.split(r"[\[<>=!~;@ ]", str(spec).strip(), maxsplit=1)[0]
 
 
+def _pypi_key(name):
+    """PyPI's normalized name (PEP 503): case, '-', '_' and '.' do not matter."""
+    return re.sub(r"[-_.]+", "-", str(name)).lower()
+
+
+def alpi_pipx_plan(listing, specs, inject=None, absent=None):
+    """What roles/pipx must run, from the user's `pipx list --json` (pipx_spec_version 0.1, the
+    same from pipx 1.4.3 on: Ubuntu 24.04's to the newest), so a run that changes nothing runs
+    nothing. Installed apps are never reinstalled for a changed spec, as `pipx install` would not.
+
+    listing: the parsed JSON, its text, or empty (pipx has never run for the user).
+    specs: PyPI specs to have ("markitdown[all]"); inject: {app: [packages]}, only for apps
+    installed or about to be; absent: app names to remove.
+    Returns {"install": [specs], "inject": [{"app", "packages"}], "uninstall": [names]}.
+    """
+    if isinstance(listing, str):
+        listing = json.loads(listing) if listing.strip() else {}
+    venvs = {_pypi_key(k): v for k, v in ((listing or {}).get("venvs") or {}).items()}
+
+    def injected(app):
+        meta = (venvs.get(_pypi_key(app)) or {}).get("metadata") or {}
+        return {_pypi_key(p) for p in meta.get("injected_packages") or {}}
+
+    install = [s for s in specs or [] if _pypi_key(alpi_pipx_name(s)) not in venvs]
+    wanted = {_pypi_key(alpi_pipx_name(s)) for s in specs or []}
+    plan_inject = []
+    for app, packages in (inject or {}).items():
+        if _pypi_key(app) not in wanted:
+            continue
+        have = injected(app)
+        missing = [p for p in packages or [] if _pypi_key(alpi_pipx_name(p)) not in have]
+        if missing:
+            plan_inject.append({"app": app, "packages": missing})
+    uninstall = [n for n in absent or [] if _pypi_key(n) in venvs]
+    return {"install": install, "inject": plan_inject, "uninstall": uninstall}
+
+
 def alpi_appimage_release(manifest):
     """The AppImage in an electron-updater manifest (latest-linux.yml, already parsed).
 
@@ -578,6 +620,7 @@ class FilterModule(object):
             "alpi_invalid_luks": alpi_invalid_luks,
             "alpi_zsh_aliases": alpi_zsh_aliases,
             "alpi_pipx_name": alpi_pipx_name,
+            "alpi_pipx_plan": alpi_pipx_plan,
             "alpi_appimage_release": alpi_appimage_release,
             "alpi_github_release": alpi_github_release,
             "alpi_upstream_missing": alpi_upstream_missing,

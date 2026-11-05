@@ -96,7 +96,7 @@
       ansible.builtin.slurp:
         src: /etc/modprobe.d/alpi-nvidia.conf
       register: _sb_ubu_conf
-      when: inventory_hostname == 'alpi-sb-ubuntu2604'
+      when: inventory_hostname in ['alpi-sb-ubuntu2604', 'alpi-sb-ubuntu2404']
 
     - name: Verify | Secure Boot on Ubuntu - one shim-signed key for DKMS and VirtualBox, options for nvidia
       ansible.builtin.assert:
@@ -108,7 +108,7 @@
           - "'options nvidia NVreg_DynamicPowerManagement=0x02' in (_sb_ubu_conf.content | b64decode)"
         fail_msg: "mokutil log: {{ _mok_log.stdout_lines | default([]) }}"
         quiet: true
-      when: inventory_hostname == 'alpi-sb-ubuntu2604'
+      when: inventory_hostname in ['alpi-sb-ubuntu2604', 'alpi-sb-ubuntu2404']
 
     - name: Verify | Secure Boot on Debian - DKMS and Oracle keys, NVIDIA options for nvidia-current
       ansible.builtin.assert:

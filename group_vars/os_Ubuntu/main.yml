@@ -1,7 +1,8 @@
 ---
-# Ubuntu 26.04 LTS "Resolute Raccoon" (PROPOSAL.md, "Decisions (2026-10-24)"). Shared with
-# Debian: group_vars/family_Debian (apt settings, repositories, GRUB, zram, full-update).
-alpi_catalog_keys: [ubuntu2604, ubuntu, deb, all]
+# Ubuntu LTS: 26.04 "Resolute Raccoon" (PROPOSAL.md, "Decisions (2026-10-24)") and 24.04 "Noble
+# Numbat" (TODO.md, Phase 6). What differs by release is in group_vars/os_Ubuntu_24 and
+# os_Ubuntu_26 (alpi_catalog_keys). Shared with Debian: group_vars/family_Debian (apt settings,
+# repositories, GRUB, zram, full-update).
 # Its codecs (catalog: multimedia), as Fedora's @multimedia
 packages_os: [multimedia]
 
@@ -22,13 +23,14 @@ apt_components: [main, restricted, universe, multiverse]
 alpi_repos_always: []
 alpi_repos_os:
   # Ubuntu's multiverse has VirtualBox 7.2.6 with its own signing path; Oracle's 7.2 instead, as on
-  # Debian (PROPOSAL decision 3 of 2026-10-24)
+  # Debian (PROPOSAL decision 3 of 2026-10-24). Oracle's suite is the release's codename (resolute,
+  # noble).
   virtualbox:
     type: deb822
     description: Oracle VirtualBox
     file: virtualbox
     uris: https://download.virtualbox.org/virtualbox/debian
-    suites: resolute
+    suites: "{{ ansible_facts['distribution_release'] }}"
     components: contrib
     key_url: https://www.virtualbox.org/download/oracle_vbox_2016.asc
     keyring: /usr/share/keyrings/oracle-virtualbox-2016.gpg
