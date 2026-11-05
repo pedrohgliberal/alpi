@@ -231,6 +231,9 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
 - **2026-11-05** `roles/pipx` runs the distro's pipx as commands, planned by `alpi_pipx_plan` from
   `pipx list --json`: community.general 13.x's module refuses pipx older than 1.7.0, and Ubuntu
   24.04 has 1.4.3 in every pocket (`feat(ubuntu): Ubuntu 24.04 LTS support`).
+- **2026-11-05** `user` scenario on Ubuntu 24.04 (`alpi-user-ubuntu2404`): zsh, desktop and the AI
+  tools for a regular user, the Antigravity IDE's AppArmor profile parsed by 24.04's own
+  `apparmor_parser` (`test(user): Ubuntu 24.04 instance`).
 
 ## Maintenance
 

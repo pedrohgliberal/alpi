@@ -12,7 +12,7 @@
         name: ubuntu
         state: absent
         remove: true
-      when: inventory_hostname == 'alpi-user-ubuntu2604'
+      when: inventory_hostname in ['alpi-user-ubuntu2604', 'alpi-user-ubuntu2404']
 
     - name: Prepare | User alpi (uid 1000)
       ansible.builtin.user:

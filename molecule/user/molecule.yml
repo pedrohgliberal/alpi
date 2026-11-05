@@ -13,6 +13,8 @@
 #                    packages under Debian names (group apt)
 #   alpi-user-ubuntu2604: no desktop (as EL); the Antigravity IDE gets its AppArmor profile for
 #                    user namespaces (parsed, not loaded: no AppArmor in the container's kernel)
+#   alpi-user-ubuntu2404: the same on Ubuntu 24.04 (its AppArmor 4.0 parser, pipx 1.4.3's
+#                    ensurepath, the IDE's packages under noble's names)
 # All: ~/wks and the cedilla fix in ~/.XCompose, owned by the user. zsh: root gets the root: true
 # aliases that are on, alpi every alias that is on and installed (GNOME switches one off in its
 # selection, KDE's custom.yml overrides its selection both ways); the API keys block (api_keys in
@@ -60,6 +62,12 @@ platforms:
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-user-ubuntu2604:/var/cache/apt"]
+    groups: [apt]
+  - name: alpi-user-ubuntu2404
+    image: docker.io/library/ubuntu:24.04
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-user-ubuntu2404:/var/cache/apt"]
     groups: [apt]
 provisioner:
   options:

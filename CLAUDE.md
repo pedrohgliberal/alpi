@@ -432,8 +432,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `/etc/locale.conf`; KDE container without one, for the fallback; AlmaLinux 10 container
     without a desktop; Debian 13 container (group `apt`) with GNOME but no Ptyxis, a pt_BR
     `/etc/default/locale`, apt's `full-update` (zsh must parse what it expands to), the AI tools'
-    packages under Debian names; Ubuntu 26.04 container without a desktop, where the Antigravity
-    IDE gets its AppArmor profile (parsed, the container's kernel has no AppArmor). Cedilla on XWayland on KDE: stand-in `kwin` RPMs (rpmbuild) 6.6.4
+    packages under Debian names; Ubuntu 26.04 and 24.04 containers without a desktop, where the Antigravity
+    IDE gets its AppArmor profile (parsed by each release's own `apparmor_parser`, the container's kernel has no AppArmor). Cedilla on XWayland on KDE: stand-in `kwin` RPMs (rpmbuild) 6.6.4
     installed, stand-in Brave/VS Code system entries (`files/xwayland/`, on every container),
     AAPI's leftovers, and `roles/packages/tasks/flatpak_overrides.yml` run alone (flatpak only
     there); `side_effect.yml` keeps the on-state in `/root/alpi-xwayland-on/` and publishes 6.7.5,

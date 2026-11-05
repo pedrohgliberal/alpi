@@ -133,7 +133,7 @@
                         + (['open-backup', 'close-backup'] if _desktop == 'KDE' else []))
                        | reject('in', {'GNOME': ['clean-cache'], 'KDE': ['ohmyzsh', 'claudecli', 'open-thevoid']}[_desktop] | default([]))
                        | reject('in', [] if inventory_hostname in _nvidia_hosts else ['nvidia-run']) | list }}"
-        _nvidia_hosts: [alpi-user-gnome, alpi-user-debian13, alpi-user-ubuntu2604]
+        _nvidia_hosts: [alpi-user-gnome, alpi-user-debian13, alpi-user-ubuntu2604, alpi-user-ubuntu2404]
 
     # Checked when it runs, not at install time: the same alias everywhere (KDE has no Claude Code)
     - name: Verify | full-update runs each updater when its command is in PATH
@@ -323,7 +323,7 @@
           (_aa.stat.exists and _aa_parse.rc == 0
            and 'profile alpi-antigravity-ide /tmp/.mount_antigr*/antigravity flags=(unconfined) {' in _aa_body
            and '  userns,' in _aa_body.splitlines())
-          if inventory_hostname == 'alpi-user-ubuntu2604' else not _aa.stat.exists
+          if inventory_hostname in ['alpi-user-ubuntu2604', 'alpi-user-ubuntu2404'] else not _aa.stat.exists
         fail_msg: "{{ _aa_body }}"
         quiet: true
       vars:
@@ -351,7 +351,7 @@
     - name: Verify | GNOME and KDE lost the old launchers; EL kept the user's own; Debian and Ubuntu got ALPI's copy
       ansible.builtin.assert:
         that:
-          - _steam.stat.exists == (inventory_hostname in ['alpi-user-el10', 'alpi-user-debian13', 'alpi-user-ubuntu2604'])
+          - _steam.stat.exists == (inventory_hostname in ['alpi-user-el10', 'alpi-user-debian13', 'alpi-user-ubuntu2604', 'alpi-user-ubuntu2404'])
           - >-
             _text == ('# ALPI: Steam\'s launcher asking for the NVIDIA GPU (steam_gpu_launcher), rebuilt on every run\n'
                       '[Desktop Entry]\nPrefersNonDefaultGPU=true\nX-KDE-RunOnDiscreteGpu=true\nName=Steam\n'
@@ -367,7 +367,7 @@
       ansible.builtin.assert:
         that: >-
           ("alias nvidia-run='" ~ _steam_prime ~ "'" in _steam_rc)
-          == (inventory_hostname in ['alpi-user-gnome', 'alpi-user-debian13', 'alpi-user-ubuntu2604'])
+          == (inventory_hostname in ['alpi-user-gnome', 'alpi-user-debian13', 'alpi-user-ubuntu2604', 'alpi-user-ubuntu2404'])
         fail_msg: "{{ _steam_rc }}"
         quiet: true
       vars:

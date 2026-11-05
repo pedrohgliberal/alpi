@@ -60,8 +60,6 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
 - [ ] **Plasma 5.27:** decide the cedilla workaround for an X11 session (XWayland flags do
       nothing there) and for Plasma 5's Wayland; check the Konsole profile and `konsolerc` on
       Konsole 23.08.
-- [ ] **`user` scenario:** a 24.04 instance (zsh, desktop and the AI tools for a regular user,
-      the Antigravity IDE's AppArmor profile).
 - [ ] **VM checklist:** `tests/vm-checklist-apt.md` on Ubuntu 24.04.5 and Kubuntu 24.04.5 (EFI +
       Secure Boot), then a release.
 
