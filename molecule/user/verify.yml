@@ -390,6 +390,17 @@
       vars:
         _gh_expected: {GNOME: "False", KDE: "True", "": unset}
 
+    - name: Verify | Read the recorded OpenLogi fact
+      ansible.builtin.command: cat /root/alpi-openlogi-agent-needed
+      register: _openlogi_fact
+      changed_when: false
+
+    - name: Verify | OpenLogi agent enabled on GNOME, reminded elsewhere, not checked on EL (skipped)
+      ansible.builtin.assert:
+        that: _openlogi_fact.stdout == ('False' if inventory_hostname == 'alpi-user-gnome' else 'unset' if inventory_hostname == 'alpi-user-el10' else 'True')
+        fail_msg: "{{ inventory_hostname }}: {{ _openlogi_fact.stdout }}"
+        quiet: true
+
     - name: Verify | Read the final status banner
       ansible.builtin.command: cat /root/alpi-final-status
       register: _final_status

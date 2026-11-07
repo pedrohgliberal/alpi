@@ -600,6 +600,25 @@ def alpi_upstream_missing(results, sources):
     return missing
 
 
+def alpi_upstream_package_current(query, tag):
+    """Whether an installed package is the release 'tag' (roles/upstream, release_package).
+
+    query: the output of upstream_package_query ("installed <version>"; anything else, empty
+    included, means not installed). The version is compared with the tag without its leading
+    'v'; a dpkg epoch ("1:") and a packaging revision ("-1") are dropped first.
+    """
+    query = str(query or "").strip()
+    if not query.startswith("installed "):
+        return False
+    version = query[len("installed "):].strip()
+    version = version.split(":", 1)[-1]
+    want = str(tag or "").strip()
+    want = want[1:] if want[:1] in ("v", "V") else want
+    if not version or not want:
+        return False
+    return want in (version, version.rsplit("-", 1)[0])
+
+
 class FilterModule(object):
     def filters(self):
         return {
@@ -624,4 +643,5 @@ class FilterModule(object):
             "alpi_appimage_release": alpi_appimage_release,
             "alpi_github_release": alpi_github_release,
             "alpi_upstream_missing": alpi_upstream_missing,
+            "alpi_upstream_package_current": alpi_upstream_package_current,
         }

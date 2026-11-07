@@ -1,0 +1,102 @@
+---
+# The vendor's own .rpm or .deb from the latest GitHub release (the asset named by
+# upstream.asset, which carries upstream_package_format), checked against GitHub's digest and
+# installed with dnf or apt, so the package manager owns the files and runs the package's
+# scripts. Installed when upstream.package is not installed or its version is not the release
+# tag's (alpi_upstream_package_current); nothing is downloaded otherwise. If GitHub cannot be
+# reached, what is installed stays. Vars: upstream_id, upstream, upstream_state (present | absent).
+
+- name: Upstream | {{ upstream_id }}
+  when: upstream_state == 'present'
+  block:
+    # The body is parsed whatever the Content-Type
+    - name: Upstream | {{ upstream_id }}, latest release
+      ansible.builtin.uri:
+        url: "{{ upstream.release_api }}"
+        headers:
+          Accept: application/vnd.github+json
+        return_content: true
+      register: _up_api
+      failed_when: false
+      check_mode: false
+
+    - name: Upstream | {{ upstream_id }}, GitHub unreachable
+      ansible.builtin.debug:
+        msg: >-
+          Could not query {{ upstream.release_api }} (status {{ _up_api.status | default('n/a') }});
+          keeping the installed {{ upstream_id }}, if any.
+      when: _up_api.status | default(0) != 200
+
+    - name: Upstream | {{ upstream_id }}, update
+      when: _up_api.status | default(0) == 200
+      block:
+        - name: Upstream | {{ upstream_id }}, pick the asset
+          ansible.builtin.set_fact:
+            _up_release: "{{ _up_api.content | from_json | alpi_github_release(upstream.asset) }}"
+
+        - name: Upstream | {{ upstream_id }}, check the release
+          ansible.builtin.assert:
+            that: _up_release.error is not defined
+            fail_msg: "{{ upstream_id }}: {{ _up_release.error | default('') }} ({{ upstream.release_api }}); fix upstream_sources in group_vars/all/upstream.yml."
+            quiet: true
+
+        # upstream_package_query per family (group_vars/family_*/main.yml); rc 1 when absent
+        - name: Upstream | {{ upstream_id }}, installed version
+          ansible.builtin.command:
+            argv: "{{ upstream_package_query + [upstream.package] }}"
+          register: _up_query
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
+        - name: Upstream | {{ upstream_id }}, install {{ _up_release.tag }}
+          when: not (_up_query.stdout | alpi_upstream_package_current(_up_release.tag))
+          block:
+            # --check cannot download into a directory it never creates
+            - name: Upstream | {{ upstream_id }}, would install (check mode)
+              ansible.builtin.debug:
+                msg: "Would install {{ upstream_id }} {{ _up_release.tag }} ({{ _up_query.stdout | default('', true) or 'not installed' }})"
+              changed_when: true
+              when: ansible_check_mode
+
+            - name: Upstream | {{ upstream_id }}, download and install
+              when: not ansible_check_mode
+              block:
+                - name: Upstream | {{ upstream_id }}, temporary directory
+                  ansible.builtin.tempfile:
+                    state: directory
+                    suffix: "{{ upstream_id }}"
+                  register: _up_tmp
+
+                - name: Upstream | {{ upstream_id }}, download {{ _up_release.name }}
+                  ansible.builtin.get_url:
+                    url: "{{ _up_release.url }}"
+                    dest: "{{ _up_tmp.path }}/{{ _up_release.name }}"
+                    checksum: "{{ _up_release.checksum | default(omit, true) }}"
+                    mode: "0644"
+
+                # Vendor packages are often unsigned (OpenLogi's are): the digest is the check
+                - name: Upstream | {{ upstream_id }}, install with dnf
+                  ansible.builtin.dnf:
+                    name: "{{ _up_tmp.path }}/{{ _up_release.name }}"
+                    state: present
+                    disable_gpg_check: true
+                  when: upstream_package_format == 'rpm'
+
+                - name: Upstream | {{ upstream_id }}, install with apt
+                  ansible.builtin.apt:
+                    deb: "{{ _up_tmp.path }}/{{ _up_release.name }}"
+                  when: upstream_package_format == 'deb'
+
+              always:
+                - name: Upstream | {{ upstream_id }}, remove the temporary directory
+                  ansible.builtin.file:
+                    path: "{{ _up_tmp.path }}"
+                    state: absent
+                  when: _up_tmp.path is defined
+
+- name: Upstream | {{ upstream_id }}, remove
+  ansible.builtin.package:
+    name: "{{ upstream.package }}"
+    state: absent
+  when: upstream_state == 'absent'

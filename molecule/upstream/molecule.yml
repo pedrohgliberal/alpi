@@ -3,12 +3,16 @@
 # python3 -m http.server in the container (prepare.yml: release JSON in the APIs' shape, zips
 # with the real archive's traps: __MACOSX resource forks, unhinted copies, a non-font file; tea
 # as Gitea publishes it, .xz + .sha256 next to a bare decoy; fj in a .tar.gz with a README):
+# openlogi (release_package): stand-in RPMs built in prepare.yml, published under OpenLogi's asset
+# names next to a .deb, a signature and an arm64 decoy; v0.1.0 preinstalled on offline and absent.
 #   alpi-up-install: installs v1 (only hinted/static/*.ttf, root-owned, version recorded; tea and
-#                    fj in /usr/local/bin, root 0755, versions in /var/lib/alpi/upstream);
+#                    fj in /usr/local/bin, root 0755, versions in /var/lib/alpi/upstream; openlogi
+#                    1.0.0 through dnf);
 #                    side_effect.yml publishes v2 (a font dropped, one added; tea v2), deletes
-#                    fj and runs again: fonts replaced wholesale, tea v2, fj v1 back
+#                    fj and runs again: fonts replaced wholesale, tea v2, fj v1 back, openlogi
+#                    upgraded to 2.0.0
 #   alpi-up-offline: the API does not answer: the installed versions stay, the run goes on
-#   alpi-up-absent:  google-roboto-fonts, tea and forgejo-cli in packages_absent: removed
+#   alpi-up-absent:  google-roboto-fonts, tea, forgejo-cli and openlogi in packages_absent: removed
 platforms:
   - name: alpi-up-install
     image: docker.io/library/almalinux:10

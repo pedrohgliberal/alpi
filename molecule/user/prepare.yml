@@ -75,6 +75,29 @@
                   alpi:
               user: alpi
 
+# OpenLogi's agent enabled on GNOME (the link systemctl --user enable writes; the unit itself is
+# not installed here), not on the others; OpenLogi skipped on EL (host_vars): no check there.
+- name: Prepare | OpenLogi agent enabled
+  hosts: alpi-user-gnome
+  gather_facts: false
+  tasks:
+    - name: Prepare | ~/.config/systemd/user/graphical-session.target.wants, alpi's
+      ansible.builtin.file:
+        path: "/home/alpi/{{ item }}"
+        state: directory
+        owner: alpi
+        mode: "0755"
+      loop: [.config, .config/systemd, .config/systemd/user, .config/systemd/user/graphical-session.target.wants]
+
+    - name: Prepare | The agent's link
+      ansible.builtin.file:
+        src: /usr/lib/systemd/user/openlogi-agent.service
+        dest: /home/alpi/.config/systemd/user/graphical-session.target.wants/openlogi-agent.service
+        state: link
+        force: true
+        follow: false
+        owner: alpi
+
 # The cedilla step reads the system locale: pt_BR on GNOME (/etc/locale.conf) and Debian
 # (/etc/default/locale, as Debian's installer writes it), none on the KDE container (fallback)
 - name: Prepare | System locale

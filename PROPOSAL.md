@@ -473,3 +473,26 @@ Checked in `debian:13` and `ubuntu:26.04` containers on 2026-10-24: NVIDIA, Virt
    exactly), the tag in `/var/lib/alpi/upstream/<id>.version`; replaced when the tag differs or
    the program is gone; forge unreachable keeps what is installed, as for the fonts. x86_64
    assets only, like every target machine.
+
+## Decisions (2026-11-07)
+
+1. **OpenLogi, a default.** An open-source alternative to Logi Options+ (buttons, DPI,
+   SmartShift over HID++; `AprilNEA/OpenLogi`), selected by default on every distro and listed
+   under "System tools" in the picker. No distro, COPR or PPA packages it (checked 2026-11-07,
+   0.9.0); the vendor publishes signed (minisign) `.rpm` and `.deb` files on each GitHub release,
+   with GitHub digests. Preferring the distro's package format over the vendor's `install.sh`,
+   Flatpak bundle or a source build keeps it under dnf/apt: removal, file ownership and the
+   package's scripts (udev reload) work as for any package.
+2. **`release_package` source type.** The asset for the family's `upstream_package_format`
+   (`rpm` or `deb`, templated into the asset regex), checked against GitHub's digest, installed
+   with the dnf module (`disable_gpg_check`: the RPM is unsigned; checked with EL10's
+   ansible-core 2.16) or apt's `deb:`. No version file: the installed package's version
+   (`upstream_package_query`) is compared with the tag (`alpi_upstream_package_current`), so a
+   package removed by hand comes back and nothing is downloaded while it is current. The
+   minisign signatures are not checked (that would need minisign and the vendor's key on every
+   machine); HTTPS and the digest are the check, as for the other sources. The RPM declares no dependencies; the `.deb`
+   needs `libxkbcommon0`, `libxkbcommon-x11-0` and `libxcb1`, which any desktop has.
+3. **The agent is left to the user.** The packages ship `openlogi-agent.service` as a systemd
+   user unit, not enabled; the app's "Launch at login" switch enables the same unit. ALPI does
+   not enable it (it would undo the user's switch on every run): `tasks/reminders.yml` reminds
+   when the user's `graphical-session.target.wants` link is missing.

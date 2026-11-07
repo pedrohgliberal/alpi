@@ -142,3 +142,27 @@
   loop: "{{ _upstream_program_found.results | zip(_upstream_version_found.results) | list }}"
   loop_control:
     label: "{{ item.0.item }}"
+
+# release_package: the package installed at the release's version (the role compared it with the
+# tag), absent ones removed; upstream_package_query prints "installed <version>"
+- name: Verify | Upstream packages
+  ansible.builtin.command:
+    argv: "{{ upstream_package_query + [upstream_sources[item].package] }}"
+  loop: "{{ _upstream_ids | select('in', _upstream_packages) | list }}"
+  register: _upstream_package_found
+  changed_when: false
+  failed_when: false
+  vars:
+    _upstream_ids: "{{ (alpi_pkgs.upstream + alpi_pkgs_extra.upstream + alpi_pkgs_absent.upstream) | unique }}"
+    _upstream_packages: "{{ upstream_sources | dict2items | selectattr('value.type', 'eq', 'release_package') | map(attribute='key') | list }}"
+
+- name: Verify | Upstream packages installed, absent ones removed
+  ansible.builtin.assert:
+    that: >-
+      (item.stdout is match('installed [0-9]'))
+      == (item.item not in alpi_pkgs_absent.upstream)
+    fail_msg: "{{ item.item }}: {{ item.stdout }} {{ item.stderr }}"
+    quiet: true
+  loop: "{{ _upstream_package_found.results }}"
+  loop_control:
+    label: "{{ item.item }}"

@@ -70,6 +70,12 @@
         dest: /root/alpi-gh-login-needed
         mode: "0644"
 
+    - name: User | Record the OpenLogi agent fact
+      ansible.builtin.copy:
+        content: "{{ alpi_openlogi_agent_needed | default('unset') }}\n"
+        dest: /root/alpi-openlogi-agent-needed
+        mode: "0644"
+
     - name: User | Record the final status banner
       ansible.builtin.copy:
         content: "{{ alpi_final_status.msg | join('\n') }}\n"

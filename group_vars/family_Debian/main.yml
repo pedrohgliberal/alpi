@@ -12,3 +12,8 @@ nvidia_modprobe_conf: /etc/modprobe.d/alpi-nvidia.conf
 # roles/desktop: Debian's and Ubuntu's steam-installer launcher has no PrefersNonDefaultGPU (checked
 # 2026-10-25), unlike Fedora's: Steam gets a user copy asking for the NVIDIA GPU
 steam_gpu_launcher: true
+
+# roles/upstream (release_package): the vendor's package format, and the installed version of a
+# package ("installed <version>"; another status, such as config-files after a remove, is not)
+upstream_package_format: deb
+upstream_package_query: [dpkg-query, -W, "-f=${db:Status-Status} ${Version}"]

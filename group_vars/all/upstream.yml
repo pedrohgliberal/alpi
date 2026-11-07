@@ -14,6 +14,13 @@
 # asset is unpacked by its name: .tar.gz gives up its 'member', .xz is decompressed, anything
 # else is the program. Installed as 'dest' (root, 0755), replaced when the release tag differs
 # from <upstream_version_dir>/<id>.version or the program is gone. x86_64 assets.
+#
+# release_package: the vendor's own .rpm or .deb from the latest GitHub release, for software no
+# distro or third-party repository packages: 'asset' names the package format through
+# upstream_package_format (group_vars/family_*/main.yml: rpm or deb), checked against GitHub's
+# digest and installed with dnf or apt, so the package manager owns its files and runs its
+# scripts. Installed when 'package' is not installed or its version is not the release tag's
+# (a leading 'v' dropped); packages_absent removes the package. x86_64 assets.
 upstream_version_dir: /var/lib/alpi/upstream
 
 upstream_sources:
@@ -52,3 +59,14 @@ upstream_sources:
     asset: '^fastfetch-linux-amd64[.]tar[.]gz$'
     member: fastfetch-linux-amd64/usr/bin/fastfetch
     dest: /usr/local/bin/fastfetch
+  # Logitech mouse and keyboard settings (buttons, DPI, SmartShift over HID++), an alternative to
+  # Logi Options+, which has no Linux version. No distro, COPR or PPA packages it (checked
+  # 2026-11-07); the vendor's .rpm (unsigned, so dnf skips its GPG check: the digest is the
+  # check) and .deb ship the udev rules (uaccess on hidraw, uinput and the mouse) and the agent's
+  # systemd user unit, not enabled: tasks/reminders.yml reminds. Needs glibc 2.35. Conflicts with
+  # Solaar (both hold the receiver), which ALPI does not install.
+  openlogi:
+    type: release_package
+    release_api: "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest"
+    asset: '^openlogi-v[0-9.]+-linux-amd64[.]{{ upstream_package_format }}$'
+    package: openlogi

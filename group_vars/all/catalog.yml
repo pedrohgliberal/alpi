@@ -63,6 +63,7 @@ alpi_catalog:
   discord:       {rpm: discord, deb: {flatpak: com.discordapp.Discord}}                   # RPM Fusion nonfree
   drawy:         {fedora: drawy, el: {flatpak: org.kde.drawy}, deb: {flatpak: org.kde.drawy}}
   gh:            {all: gh, repo: gh-cli}
+  openlogi:      {all: {upstream: openlogi}}       # Logitech devices; the vendor's .rpm/.deb
   inkscape:      {fedora: inkscape, el: {flatpak: org.inkscape.Inkscape}, deb: inkscape}
   # Fedora Workstation ships it; dropped from EL10, so a default there only (packages_os)
   libreoffice:   {fedora: libreoffice, el: {flatpak: org.libreoffice.LibreOffice}, deb: libreoffice}

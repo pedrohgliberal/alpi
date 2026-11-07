@@ -208,7 +208,7 @@ class TestFeatures:
         assert set(alpi.FilterModule().filters()) == {
             "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_repos", "alpi_feature_ids",
             "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name", "alpi_pipx_plan",
-            "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing",
+            "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing", "alpi_upstream_package_current",
         }
 
 
@@ -708,6 +708,27 @@ def test_upstream_missing_decides_only_on_answers():
     ]
     assert alpi.alpi_upstream_missing(results, sources) == ["moved", "noasset", "garbled", "nosums"]
     assert alpi.alpi_upstream_missing(None, {}) == []
+
+
+# --- alpi_upstream_package_current ---------------------------------------------------------------
+
+@pytest.mark.parametrize("query, tag, current", [
+    ("installed 0.9.0", "v0.9.0", True),                # rpm -q --qf 'installed %{VERSION}'
+    ("installed 0.9.0\n", "0.9.0", True),               # a tag without 'v'
+    ("installed 0.9.0", "v0.10.0", False),              # an update
+    ("installed 0.10.0", "v0.9.0", False),              # not "newer is fine": the release wins
+    ("installed 0.9.0-1", "v0.9.0", True),              # dpkg revision
+    ("installed 1:0.9.0-2", "v0.9.0", True),            # dpkg epoch and revision
+    ("installed 1.0-rc1", "v1.0-rc1", True),            # a tag with '-'
+    ("config-files 0.9.0", "v0.9.0", False),           # removed, configuration left (dpkg)
+    ("package openlogi is not installed", "v0.9.0", False),  # rpm -q's own message
+    ("", "v0.9.0", False),
+    (None, "v0.9.0", False),
+    ("installed ", "v0.9.0", False),
+    ("installed 0.9.0", "", False),
+])
+def test_upstream_package_current(query, tag, current):
+    assert alpi.alpi_upstream_package_current(query, tag) is current
 
 
 # alpi_zram_plan: swapon --raw --bytes lines (NAME TYPE SIZE PRIO)

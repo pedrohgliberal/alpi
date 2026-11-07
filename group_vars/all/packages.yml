@@ -57,6 +57,7 @@ packages_base:
   - drawy
   - gh
   - inkscape
+  - openlogi
   - telegram
   - vscode
   # Python apps (pipx, for the user)

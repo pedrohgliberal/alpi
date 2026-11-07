@@ -29,7 +29,9 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   `packages`, `upstream`, `common`, `zsh`, `desktop`, `pipx`, `ai_tools`, `clamav`, `asus`, `nvidia` so far),
   then `tasks/reminders.yml` in `post_tasks` (tag `reminders`, not `always`, so `--tags resolve`
   stays quiet): the `gh auth login` reminder when `gh` is selected and `~/.config/gh/hosts.yml`
-  has no `github.com:` (sets `alpi_gh_login_needed`), and the disk swap reminder when
+  has no `github.com:` (sets `alpi_gh_login_needed`), the OpenLogi agent reminder when
+  `openlogi` is selected and the user's `graphical-session.target.wants/openlogi-agent.service`
+  link is missing (sets `alpi_openlogi_agent_needed`), and the disk swap reminder when
   `hibernate` is on and disk swap is smaller than RAM (`alpi_memory.hibernate_reminder`), then
   AAPI's final status banner (`alpi_final_status`; a run stopped by the reboot gate never gets
   there).
@@ -263,7 +265,11 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   root 0755), unpacked by the asset's name (`.tar.gz`: its `member`; `.xz`: decompressed, with
   `xz_package` from `group_vars/family_*/main.yml`; else as is), the tag in
   `<upstream_version_dir>/<id>.version` (`/var/lib/alpi/upstream`), replaced when the tag differs
-  or the program is gone. Forge unreachable keeps what is installed; `packages_absent` removes
+  or the program is gone. `release_package` (OpenLogi, PROPOSAL "Decisions (2026-11-07)"): the
+  vendor's `.rpm`/`.deb` for the family's `upstream_package_format` (templated into `asset`),
+  installed with dnf (`disable_gpg_check`) or apt's `deb:` when `upstream_package_query` (per
+  family, `installed <version>`) is not the tag (`alpi_upstream_package_current`); removed with
+  the package manager. Forge unreachable keeps what is installed; `packages_absent` removes
   it. The release body is parsed whatever its Content-Type. Name check in
   `roles/packages/tasks/check.yml` (`alpi_upstream_missing`: a 404 or no matching asset or
   checksum asset fails, no answer only warns). Installed by root, so it runs for root-only runs
@@ -389,7 +395,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     AlmaLinux 10 against stand-in GitHub, Gitea and Forgejo releases served by `http.server` on
     127.0.0.1:8766: Roboto, tea (.xz + .sha256) and fj (.tar.gz) install v1, `side_effect.yml`
     publishes Roboto and tea v2, deletes fj and runs again (Molecule's side_effect step, added to
-    the scenario's test_sequence): replaced, fj v1 back; forges unreachable keep v0,
+    the scenario's test_sequence): replaced, fj v1 back; openlogi stand-in RPMs (rpmbuild) 1.0.0
+    then 2.0.0 next to decoy assets; forges unreachable keep v0,
     `packages_absent` removes them; the personal and work scenarios install the real releases), `bootstrap`
     (bootstrap.sh with scripted answers, picker in text mode, on Fedora 44, Debian 13, Ubuntu 26.04 and 24.04 (classic sudo, no sudo.ws: the inventory picks `sudo`); a Debian
     13 without sudo must stop before installing anything and print the `su -` command; on each of the others a user with a password then runs a become task through the repo's `inventory.ini` and `ansible.cfg`: Ubuntu's `sudo` is sudo-rs, which wraps become's prompt so Ansible times out, so the inventory picks `sudo.ws` where it exists), `common` (env_setup +
@@ -446,7 +453,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     pinned true: GNOME loses ALPI's old Steam launcher and gets the `nvidia-run` alias, KDE vetoes
     NVIDIA and loses AFPI's leftover launcher, EL keeps a user's own, Debian and Ubuntu turn the old
     launcher into ALPI's copy of steam-installer's (a stand-in) with the GPU keys; `tasks/reminders.yml`: gh logged in on GNOME, reminded on KDE,
-    skipped on EL, the fact recorded in `/root/alpi-gh-login-needed` for verify). That recipe
+    skipped on EL, the fact recorded in `/root/alpi-gh-login-needed` for verify; the OpenLogi
+    agent's link on GNOME only, `/root/alpi-openlogi-agent-needed`). That recipe
     is the way to test any user-specific step (root and the user differ there).
   - `fedora44-personal` and `el10-work` have no systemd: they skip service roles by tag
     (`skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory`; `memory` because a

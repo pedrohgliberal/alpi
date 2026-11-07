@@ -6,3 +6,8 @@ xz_package: xz
 # roles/nvidia: the driver's options file (AFPI's name, so its file is rewritten) and module name
 nvidia_modprobe_conf: /etc/modprobe.d/nvidia.conf
 nvidia_module: nvidia
+
+# roles/upstream (release_package): the vendor's package format, and the installed version of a
+# package ("installed <version>", nothing when it is not installed)
+upstream_package_format: rpm
+upstream_package_query: [rpm, -q, --qf, "installed %{VERSION}"]

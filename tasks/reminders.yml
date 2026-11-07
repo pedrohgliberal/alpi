@@ -26,6 +26,30 @@
           - "  gh auth setup-git"
       when: alpi_gh_login_needed
 
+# OpenLogi's packages ship the agent's user unit without enabling it; the app's "Launch at login"
+# setting enables the same unit, so the playbook leaves that choice to the user and only reminds.
+# Enabled means the link systemctl --user enable writes (WantedBy=graphical-session.target).
+- name: OpenLogi | Check the agent
+  when: "'openlogi' in alpi_ids_selected and user_name != 'root'"
+  block:
+    - name: OpenLogi | Look for the enabled agent
+      ansible.builtin.stat:
+        path: "{{ user_home }}/.config/systemd/user/graphical-session.target.wants/openlogi-agent.service"
+        get_checksum: false
+      register: _openlogi_agent
+
+    - name: OpenLogi | Set the agent fact
+      ansible.builtin.set_fact:
+        alpi_openlogi_agent_needed: "{{ not _openlogi_agent.stat.exists }}"
+
+    - name: OpenLogi | Remind to start the agent
+      ansible.builtin.debug:
+        msg:
+          - "OpenLogi's agent does not start at login, so no device shows up. As {{ user_name }}, run:"
+          - "  systemctl --user enable --now openlogi-agent.service"
+          - "or turn on Settings > General > Launch at login in OpenLogi. Quit Solaar first if it runs."
+      when: alpi_openlogi_agent_needed
+
 # roles/memory reports it (alpi_memory); a skipped role leaves it undefined
 - name: Memory | Remind about disk swap for hibernation
   ansible.builtin.debug:

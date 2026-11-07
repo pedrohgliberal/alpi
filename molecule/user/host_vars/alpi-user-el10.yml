@@ -3,8 +3,8 @@ _desktop: ""
 # In real use, from the vault (group_vars/all/secrets.yml)
 api_keys: |
   export ALPI_TEST_KEY="secret"
-# gh not selected: the login reminder does not run
-packages_skip: [gh]
+# gh and OpenLogi not selected: their reminders do not run
+packages_skip: [gh, openlogi]
 # Left empty, as in a custom.yml whose examples are still commented out: null, not "None"
 luks_volumes:
 zsh_aliases_custom:

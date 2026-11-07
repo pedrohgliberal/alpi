@@ -116,3 +116,35 @@
       vars:
         _exp: "{{ _bin_expected[inventory_hostname] }}"
       when: inventory_hostname != 'alpi-up-absent'
+
+- name: Verify | roles/upstream (openlogi, release_package)
+  hosts: all
+  gather_facts: false
+  vars:
+    _ol_expected:
+      alpi-up-install: {query: installed 2.0.0, run: openlogi 2.0.0}
+      alpi-up-offline: {query: installed 0.1.0, run: openlogi 0.1.0}
+      alpi-up-absent: {query: "", run: ""}
+  tasks:
+    - name: Verify | Installed openlogi package
+      ansible.builtin.command:
+        argv: [rpm, -q, --qf, "installed %{VERSION}", openlogi]
+      register: _ol_query
+      changed_when: false
+      failed_when: false
+
+    - name: Verify | Run the installed stand-in
+      ansible.builtin.command: /usr/bin/openlogi
+      register: _ol_run
+      changed_when: false
+      failed_when: false
+
+    # install: 1.0.0 through dnf (the .rpm, not the decoys), then upgraded to 2.0.0; offline:
+    # 0.1.0 kept; absent: the package removed with its files
+    - name: Verify | The expected package, its files owned by it
+      ansible.builtin.assert:
+        that:
+          - (_ol_query.stdout if _ol_query.rc == 0 else '') == _ol_expected[inventory_hostname].query
+          - (_ol_run.stdout if _ol_run.rc == 0 else '') == _ol_expected[inventory_hostname].run
+        fail_msg: "{{ _ol_query.stdout }} / {{ _ol_run.stdout }} {{ _ol_run.stderr | default('') }}"
+        quiet: true

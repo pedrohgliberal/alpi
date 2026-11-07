@@ -2,6 +2,59 @@
 - name: Prepare | Shared
   ansible.builtin.import_playbook: ../shared/prepare.yml
 
+# Stand-in OpenLogi packages (release_package): an rpm per version, each installing a script that
+# prints it. v0 is what an earlier run left on offline and absent; v1 and v2 are published on the
+# install instance's stand-in GitHub.
+- name: Prepare | Stand-in openlogi RPMs
+  hosts: all
+  gather_facts: false
+  vars:
+    _ol_versions: "{{ ['1.0.0', '2.0.0'] if inventory_hostname == 'alpi-up-install' else ['0.1.0'] }}"
+  tasks:
+    - name: Prepare | rpm-build
+      ansible.builtin.package:
+        name: rpm-build
+        state: present
+
+    - name: Prepare | Spec directory
+      ansible.builtin.file:
+        path: /opt/alpi-test/specs
+        state: directory
+        mode: "0755"
+
+    - name: Prepare | Spec files
+      ansible.builtin.copy:
+        dest: "/opt/alpi-test/specs/openlogi-{{ item }}.spec"
+        content: |
+          Name: openlogi
+          Version: {{ item }}
+          Release: 1
+          Summary: ALPI test stand-in for OpenLogi
+          License: GPL-3.0-or-later
+          BuildArch: noarch
+          %description
+          ALPI test stand-in for OpenLogi.
+          %install
+          mkdir -p %{buildroot}/usr/bin
+          printf '#!/bin/sh\necho "openlogi {{ item }}"\n' > %{buildroot}/usr/bin/openlogi
+          chmod 0755 %{buildroot}/usr/bin/openlogi
+          %files
+          /usr/bin/openlogi
+        mode: "0644"
+      loop: "{{ _ol_versions }}"
+
+    - name: Prepare | Build the packages
+      ansible.builtin.command:
+        cmd: "rpmbuild -bb --define '_rpmdir /opt/alpi-test/rpms' /opt/alpi-test/specs/openlogi-{{ item }}.spec"
+        creates: "/opt/alpi-test/rpms/noarch/openlogi-{{ item }}-1.noarch.rpm"
+      loop: "{{ _ol_versions }}"
+
+    - name: Prepare | openlogi 0.1.0 installed
+      ansible.builtin.command:
+        cmd: rpm -i /opt/alpi-test/rpms/noarch/openlogi-0.1.0-1.noarch.rpm
+        creates: /usr/bin/openlogi
+      when: inventory_hostname != 'alpi-up-install'
+
 # Two releases in the GitHub API's shape. Each zip has what the role must take (hinted/static
 # TTFs) and what it must leave (macOS resource forks, unhinted copies, a README). v2 drops
 # Roboto-Bold and adds Roboto-Black.
@@ -82,6 +135,33 @@
                "browser_download_url": f"{url}/dl/fj/v1/forgejo-cli-x86_64-linux.tar.gz"}]}))
           PY
         creates: /srv/alpi-up/tea-release-v2.json
+
+    # In GitHub's shape with digests, under OpenLogi's asset names, next to what the role must
+    # not take: the .deb, the signature, the arm64 build
+    - name: Prepare | openlogi release JSON (v1.0.0 published, v2.0.0 kept for side_effect.yml)
+      ansible.builtin.shell:
+        cmd: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, shutil
+          root = pathlib.Path("/srv/alpi-up")
+          url = "http://127.0.0.1:8766"
+          api = root / "repos/AprilNEA/OpenLogi/releases"
+          api.mkdir(parents=True, exist_ok=True)
+          for version in ("1.0.0", "2.0.0"):
+              tag = f"v{version}"
+              d = root / "dl/openlogi" / tag
+              d.mkdir(parents=True, exist_ok=True)
+              name = f"openlogi-{tag}-linux-amd64.rpm"
+              shutil.copy(f"/opt/alpi-test/rpms/noarch/openlogi-{version}-1.noarch.rpm", d / name)
+              for decoy in (f"openlogi-{tag}-linux-amd64.deb", f"{name}.minisig", f"openlogi-{tag}-linux-arm64.rpm"):
+                  (d / decoy).write_text("not the package\n")
+              assets = [{"name": n, "browser_download_url": f"{url}/dl/openlogi/{tag}/{n}",
+                         "digest": "sha256:" + hashlib.sha256((d / n).read_bytes()).hexdigest()}
+                        for n in sorted(p.name for p in d.iterdir())]
+              (root / f"openlogi-release-{tag}.json").write_text(json.dumps({"tag_name": tag, "assets": assets}))
+          (api / "latest").write_text((root / "openlogi-release-v1.0.0.json").read_text())
+          PY
+        creates: /srv/alpi-up/openlogi-release-v2.0.0.json
 
     # Detached, or the exec never returns
     - name: Prepare | HTTP server on 127.0.0.1:8766

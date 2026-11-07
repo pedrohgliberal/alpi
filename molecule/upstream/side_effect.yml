@@ -1,6 +1,7 @@
 ---
-# New releases are published after converge + idempotence (Roboto and tea), and fj is deleted
-# while its release stays v1: the next run must replace Roboto and tea and put fj v1 back
+# New releases are published after converge + idempotence (Roboto, tea and openlogi), and fj is
+# deleted while its release stays v1: the next run must replace Roboto and tea, upgrade openlogi
+# and put fj v1 back
 - name: Side effect | Publish v2, delete fj
   hosts: alpi-up-install
   gather_facts: false
@@ -14,6 +15,7 @@
       loop:
         - { src: release-v2.json, dest: repos/googlefonts/roboto-3-classic/releases/latest }
         - { src: tea-release-v2.json, dest: api/v1/repos/gitea/tea/releases/latest }
+        - { src: openlogi-release-v2.0.0.json, dest: repos/AprilNEA/OpenLogi/releases/latest }
 
     - name: Side effect | fj gone
       ansible.builtin.file:

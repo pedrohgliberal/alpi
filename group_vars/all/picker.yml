@@ -7,8 +7,8 @@
 # that group empty for the repository's own ids).
 picker_groups:
   - title: System tools
-    ids: [7zip, btop, curl, fastfetch, hwinfo, lm-sensors, nvtop, testdisk, tmux, tuptime, unrar,
-          unzip, vim, wl-clipboard, zsh]
+    ids: [7zip, btop, curl, fastfetch, hwinfo, lm-sensors, nvtop, openlogi, testdisk, tmux, tuptime,
+          unrar, unzip, vim, wl-clipboard, zsh]
   - title: Security
     ids: [clamav, chkrootkit, lynis, rkhunter, unhide]
   - title: Internet & chat
@@ -42,6 +42,7 @@ picker_descriptions:
   hwinfo: Hardware information
   lm-sensors: Temperature and fan sensors
   nvtop: GPU process viewer
+  openlogi: OpenLogi, Logitech mouse and keyboard settings
   testdisk: Partition and file recovery
   tmux: Terminal multiplexer
   tuptime: Uptime history

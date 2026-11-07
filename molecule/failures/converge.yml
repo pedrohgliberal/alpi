@@ -61,14 +61,18 @@
         # The default set already has ids unavailable on EL (codecs, security, argyllcms)
         expect: ["Not available on AlmaLinux: gstreamer1-plugins-bad-free-extras,
                   chkrootkit, unhide, argyllcms, steam", "alpi_strict is on"]
-      # The catalog names upstream sources (the forge CLIs, Roboto on EL) that upstream_sources lacks
+      # The catalog names upstream sources (the forge CLIs, OpenLogi, Roboto on EL) that
+      # upstream_sources lacks
       - name: upstream source not defined
         only: AlmaLinux
         upstream_sources: {}
         # Each id on its own: resolve.yml lists them through difference, which keeps no order
-        expect: ["Catalog bug, upstream sources with no definition", "roboto", "tea", "forgejo-cli"]
+        expect: ["Catalog bug, upstream sources with no definition", "roboto", "tea", "forgejo-cli",
+                 "openlogi"]
       # The real releases, Roboto's (GitHub) asked for an asset it does not have, tea's (Gitea)
-      # for a checksum file it does not have; fj's (Forgejo) as in group_vars/all/upstream.yml
+      # for a checksum file it does not have, OpenLogi's (GitHub, release_package) for its
+      # .rpm under a suffix it does not have; fj's (Forgejo) as in
+      # group_vars/all/upstream.yml
       - name: upstream release without the asset
         only: AlmaLinux
         packages_role: true
@@ -91,7 +95,13 @@
             asset: '^forgejo-cli-x86_64-linux[.]tar[.]gz$'
             member: fj
             dest: /usr/local/bin/fj
-        expect: ["Upstream sources (no such release or asset): tea, roboto."]
+          openlogi:
+            type: release_package
+            release_api: "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest"
+            # Literal: the cases are templated before group_by loads upstream_package_format
+            asset: '^openlogi-v[0-9.]+-linux-amd64[.]rpm[.]alpi-nope$'
+            package: openlogi
+        expect: ["Upstream sources (no such release or asset): tea, roboto, openlogi."]
       - name: names not found
         # Like a real run, repos first: every real name resolves, only the bad ones are reported
         packages_add: ["pkg:nope-xyz", "flatpak:org.nope.App", "pipx:alpi-nope-not-on-pypi-xyz"]
