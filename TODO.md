@@ -63,11 +63,23 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
 - [ ] **VM checklist:** `tests/vm-checklist-apt.md` on Ubuntu 24.04.5 and Kubuntu 24.04.5 (EFI +
       Secure Boot), then a release.
 
+## 8. Fedora 45
+
+In the support matrix and the container tests since 2026-11-07 (`TODO-HISTORY.md`). Checked in
+`fedora:45` on 2026-11-07: dnf5 5.4.7, KWin 6.8.2 (the cedilla workaround stays off), RPM Fusion
+and the ASUS COPR publish 45.
+
+- [ ] **VM checklist:** `tests/vm-checklist.md`'s Fedora KDE VM on Fedora 45 (EFI + Secure Boot):
+      akmods key and signed `akmod-VirtualBox`/NVIDIA builds on 45's kernel, `dracut`, the reboot
+      gate, Konsole and the cedilla in a Plasma 6.8 session; then a release.
+
 ## Maintenance
 
 - [ ] RPM Fusion's `libheif-freeworld` 1.23.6 needs a `libheif` that Fedora and EPEL no longer
       publish (2026-11-05): `catalog`, `fedora44-personal` and `el10-work` fail at the name check
       until it is rebuilt. Rerun them then (`tests/run.sh catalog fedora44-personal el10-work`).
+      On 2026-11-07 only `alpi-catalog-el10` still failed in `catalog` (EPEL); Fedora 44 and 45
+      resolved it.
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
       puts first in `PATH`) or Fedora's `ansible` package, rerun `tests/run.sh full` and recheck

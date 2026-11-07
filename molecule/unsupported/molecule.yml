@@ -1,10 +1,15 @@
 ---
 # An unsupported distro must stop in env_setup before anything else runs: releases of listed
-# distros outside their entries, Debian 12 (below the range) and Ubuntu 26.10 (an interim release
-# with the same major as the listed 26.04).
+# distros outside their entries, Debian 12 (below the range), Fedora 46 (above it; the tag is
+# Rawhide until 46 branches) and Ubuntu 26.10 (an interim release with the same major as the
+# listed 26.04).
 platforms:
   - name: alpi-unsupported-debian12
     image: docker.io/library/debian:12
+    pre_build_image: true
+    command: sleep infinity
+  - name: alpi-unsupported-fedora46
+    image: registry.fedoraproject.org/fedora:46
     pre_build_image: true
     command: sleep infinity
   - name: alpi-unsupported-ubuntu2610

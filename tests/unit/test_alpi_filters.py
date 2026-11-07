@@ -213,7 +213,7 @@ class TestFeatures:
 
 
 # --- alpi_support ------------------------------------------------------------------------------
-SUPPORT = {"Fedora": {"min": 41, "max": 44}, "AlmaLinux": {"min": 10, "max": 10},
+SUPPORT = {"Fedora": {"min": 41, "max": 45}, "AlmaLinux": {"min": 10, "max": 10},
            "Ubuntu": {"version": "26.04"}}
 # Two exact versions (Ubuntu's LTS releases), as group_vars/all/support.yml lists them
 SUPPORT_LTS = {"Debian": {"min": 13, "max": 13}, "Ubuntu": {"version": ["24.04", "26.04"]}}
@@ -223,7 +223,8 @@ SUPPORT_LTS = {"Debian": {"min": 13, "max": 13}, "Ubuntu": {"version": ["24.04",
     ("Fedora", "44", "44", True),
     ("Fedora", "41", "41", True),
     ("Fedora", "40", "40", False),
-    ("Fedora", "45", "45", False),
+    ("Fedora", "45", "45", True),
+    ("Fedora", "46", "46", False),
     ("AlmaLinux", "10.0", "10", True),
     # Ubuntu's major (26) is the same for 26.04 and 26.10: an exact version, not a range
     ("Ubuntu", "26.04", "26", True),
@@ -252,7 +253,7 @@ def test_support_lists_several_exact_versions():
 
 def test_support_lists_ranges_single_majors_and_exact_versions():
     assert alpi.alpi_support(SUPPORT, "Debian", "13", "13")["listed"] == \
-        "Fedora 41-44, AlmaLinux 10, Ubuntu 26.04"
+        "Fedora 41-45, AlmaLinux 10, Ubuntu 26.04"
 
 
 # --- alpi_apt_components -----------------------------------------------------------------------

@@ -8,7 +8,7 @@
 # Debian 13 and Ubuntu 26.04 are listed for the apt work; their first releases wait for the VM
 # checklist (PROPOSAL.md, decision 6; TODO.md, Phase 5). Ubuntu 24.04: TODO.md, Phase 6.
 alpi_supported:
-  Fedora: {min: 41, max: 44}
+  Fedora: {min: 41, max: 45}
   AlmaLinux: {min: 10, max: 10}
   Debian: {min: 13, max: 13}
   Ubuntu: {version: ["24.04", "26.04"]}

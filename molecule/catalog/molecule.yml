@@ -8,6 +8,11 @@ platforms:
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-catalog-fedora44:/var/cache/libdnf5"]
+  - name: alpi-catalog-fedora45
+    image: registry.fedoraproject.org/fedora:45
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-catalog-fedora45:/var/cache/libdnf5"]
   - name: alpi-catalog-el10
     image: docker.io/library/almalinux:10
     pre_build_image: true

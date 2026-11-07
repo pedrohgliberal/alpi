@@ -235,6 +235,13 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   tools for a regular user, the Antigravity IDE's AppArmor profile parsed by 24.04's own
   `apparmor_parser` (`test(user): Ubuntu 24.04 instance`).
 
+## 8. Fedora 45
+
+- **2026-11-07** Fedora 45 in the support matrix (`{min: 41, max: 45}`); `catalog` checks every
+  name on a Fedora 45 instance against its golden values, `fedora45-personal` installs with
+  `fedora44-personal`'s settings and verify, `unsupported` refuses Fedora 46
+  (`feat(fedora): Fedora 45 support`).
+
 ## Maintenance
 
 - **2026-10-23** VirtualBox vs KVM on kernel 6.12+: kvm keeps VMX on from load

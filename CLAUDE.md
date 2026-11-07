@@ -356,11 +356,12 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     filter/role paths, links to the repo's `group_vars/` and the scenario's `host_vars/` (links
     replace inline `host_vars`, so a scenario's settings under test go in
     `molecule/<scenario>/host_vars/<instance>.yml`).
-  - Scenarios: `catalog` (Fedora + Alma: repos + every name checked, nothing installed; the full
+  - Scenarios: `catalog` (Fedora 44 and 45 + Alma: repos + every name checked, nothing installed; the full
     resolved sets, and the host's `family_`/`os_` groups, compared with reviewed golden values in
     its `host_vars/`, via `shared/verify_resolution.yml`. Update those when the catalog or package lists change, after
     reviewing the diff; also the AI tools' upstream URLs, `roles/ai_tools/tasks/check.yml`),
-    `fedora44-personal`, `el10-work` (real installs, heaviest apps skipped;
+    `fedora44-personal`, `fedora45-personal` (the same settings and `verify.yml` on Fedora 45),
+    `el10-work` (real installs, heaviest apps skipped;
     `shared/verify_installed.yml` checks everything resolved is installed; `el10-work` also
     resolves with EL10's own ansible-core 2.16 inside the container,
     `shared/verify_native_controller.yml`, and its `prepare.yml` writes AAPI's repository files
@@ -384,7 +385,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `ubuntu2604` (as `debian13`, with its playbooks: each instance's sources file, components and
     candidates in its host_vars), `ubuntu2404` and `ubuntu2404-personal` (the same on Ubuntu
     24.04, KWin pinned at Plasma 5's 5.27.11; the personal one resolves with 24.04's ansible-core
-    2.16), `unsupported` (Debian 12, Ubuntu 26.10), `upstream` (`roles/upstream` on
+    2.16), `unsupported` (Debian 12, Fedora 46: the `fedora:46` tag is Rawhide until it branches, Ubuntu 26.10), `upstream` (`roles/upstream` on
     AlmaLinux 10 against stand-in GitHub, Gitea and Forgejo releases served by `http.server` on
     127.0.0.1:8766: Roboto, tea (.xz + .sha256) and fj (.tar.gz) install v1, `side_effect.yml`
     publishes Roboto and tea v2, deletes fj and runs again (Molecule's side_effect step, added to

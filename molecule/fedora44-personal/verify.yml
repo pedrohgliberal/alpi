@@ -1,5 +1,5 @@
 ---
-- name: Verify | Fedora 44, personal
+- name: Verify | Fedora, personal (44 and 45)
   hosts: all
   tasks:
     - name: Verify | Installed

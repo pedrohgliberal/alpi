@@ -1,0 +1,17 @@
+---
+# Fedora 45, personal machine, as fedora44-personal (its verify.yml; the same custom.yml and
+# selection.yml in host_vars): repos (RPM Fusion, Brave, VS Code, GitHub CLI, the ASUS COPR) and
+# the packages role with real installs, ASUS, Intel and AMD forced.
+platforms:
+  - name: alpi-fedora45-personal
+    image: registry.fedoraproject.org/fedora:45
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-fedora45-personal:/var/cache/libdnf5"]
+provisioner:
+  options:
+    extra-vars: '{"is_nvidia": false, "is_asus": true, "is_intel": true, "is_amd": true}'
+    # As fedora44-personal
+    skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
+  playbooks:
+    verify: ../fedora44-personal/verify.yml

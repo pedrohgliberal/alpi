@@ -1,6 +1,11 @@
 ---
 - name: Unsupported | The distro is rejected
   hosts: all
+  vars:
+    _unsupported:
+      alpi-unsupported-debian12: Debian 12
+      alpi-unsupported-fedora46: Fedora 46
+      alpi-unsupported-ubuntu2610: Ubuntu 26.10
   tasks:
     - name: Unsupported | Run the case
       ansible.builtin.include_tasks: ../shared/expect_failure.yml
@@ -8,5 +13,5 @@
         _case:
           name: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
           expect:
-            - "ALPI does not support {{ 'Debian 12' if 'debian12' in inventory_hostname else 'Ubuntu 26.10' }}"
-            - "Supported: Fedora 41-44, AlmaLinux 10, Debian 13, Ubuntu 24.04 and 26.04"
+            - "ALPI does not support {{ _unsupported[inventory_hostname] }}"
+            - "Supported: Fedora 41-45, AlmaLinux 10, Debian 13, Ubuntu 24.04 and 26.04"

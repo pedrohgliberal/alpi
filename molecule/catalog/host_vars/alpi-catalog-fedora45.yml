@@ -1,0 +1,32 @@
+---
+# Expected full resolved sets (verify.yml). Reviewed against AFPI 2.9 / AAPI 1.1 lists;
+# KDE, GNOME and all hardware are forced on in molecule.yml.
+_golden:
+  native: [7zip, 7zip-standalone, btop, curl, fastfetch, git, hwinfo, ImageMagick, lm_sensors, nodejs, nvtop, pipx, potrace,
+    python3-pip, ShellCheck, testdisk, tmux, tuptime, unrar, unzip, uv, vim, wl-clipboard, zsh, fira-code-fonts,
+    google-roboto-fonts, ffmpeg, gstreamer1-plugins-bad-free-extras, gstreamer1-plugins-bad-freeworld,
+    gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, libheif-freeworld, chkrootkit, lynis, rkhunter,
+    unhide, argyllcms, brave-browser, brave-origin, chromium, discord, drawy, gh, inkscape, telegram-desktop, code,
+    "@multimedia", kde-gtk-config, kpat, ktorrent, plasma-sdk, flatseal, gnome-tweaks, steam, clamav, clamav-update,
+    VirtualBox, akmod-VirtualBox, kernel-devel, asusctl, supergfxctl, asusctl-rog-gui, libva-intel-driver, intel-media-driver, mesa-va-drivers-freeworld,
+    libva-utils, vdpauinfo, akmod-nvidia, xorg-x11-drv-nvidia, xorg-x11-drv-nvidia-cuda, xorg-x11-drv-nvidia-libs,
+    xorg-x11-drv-nvidia-libs.i686, akmods, kmodtool, gcc, kernel-headers, vulkan,
+    xorg-x11-drv-nvidia-cuda-libs, libva-nvidia-driver]
+  swap: [ffmpeg, mesa-va-drivers-freeworld]
+  flatpak: [com.bitwarden.desktop, net.displaycal.DisplayCAL, com.dec05eba.gpu_screen_recorder, com.slack.Slack,
+    com.spotify.Client, com.rtosta.zapzap, us.zoom.Zoom, org.zotero.Zotero, org.gtk.Gtk3theme.Breeze, com.markopejic.downloader,
+    com.mattjakeman.ExtensionManager, de.haeckerfelix.Fragments, com.github.unrud.VideoDownloader]
+  features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
+    intel: true, nvidia: true, steam: true, virtualbox: true}
+  repos: [rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, asus-linux]
+  unavailable: []
+  pipx: ["markitdown[all]", "notebooklm-py[browser]", pdf2docx]
+  # The Gitea and Forgejo CLIs, from their releases everywhere (roles/upstream)
+  upstream: [forgejo-cli, tea]
+  extra: []
+  absent: []
+  # KDE forced with KWin 6.6.4 (molecule.yml): ZapZap first (flatpak_overrides_common: ~/wks), the repository's KDE overrides, the cedilla layer
+  # replacing Bitwarden's and adding Slack, Spotify and ZapZap; every app selected
+  flatpak_overrides: [com.rtosta.zapzap, com.bitwarden.desktop, us.zoom.Zoom, com.slack.Slack, com.spotify.Client]
+  cedilla_xwayland: true
+  groups: [family_RedHat, os_Fedora, os_Fedora_45]

@@ -85,7 +85,7 @@ def alpi_support(matrix, distro, version, major):
     matrix: {distro: {min: N, max: N}} (major versions, inclusive) or {distro: {version: "26.04"}}
     (that exact distribution_version: Ubuntu's major is 26 for both 26.04 and 26.10), or a list of
     them ({version: ["24.04", "26.04"]}: two LTS releases, not the interim ones between).
-    Returns {"supported": bool, "listed": "Fedora 41-44, AlmaLinux 10, Ubuntu 24.04 and 26.04"}.
+    Returns {"supported": bool, "listed": "Fedora 41-45, AlmaLinux 10, Ubuntu 24.04 and 26.04"}.
     """
     def versions(entry):
         v = entry["version"]
