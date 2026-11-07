@@ -35,7 +35,7 @@ def ids(items):
 
 
 def test_fedora_lists_everything_but_hardware_and_feature_packages():
-    data, (features, packages) = real_choices("Fedora", "44")
+    data, (features, packages) = real_choices("Fedora", "45")
     assert ids(features) == ["steam", "clamav", "virtualbox", "claude_code", "antigravity_cli",
                              "antigravity_ide"]
     assert all(c.default for c in features)

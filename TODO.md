@@ -84,7 +84,9 @@ and the ASUS COPR publish 45.
       `libheif-freeworld` 1.21.2-3 requires `libheif` 1.21.2 (depsolve error). Fedora 45 passes
       (`catalog`, `fedora45-personal`). Since 2026-11-07 (v1.5.0) the catalog marks it
       unavailable on Fedora 44 and EL (`{fedora44: ~, el: ~}`: skipped with a warning; Fedora
-      45 keeps it). Once RPM Fusion rebuilds it: drop both keys, move it back to the native sets
+      45 keeps it), and `multimedia` on Fedora 44 too (`@multimedia` has it as a conditional
+      member there). Once RPM Fusion rebuilds it: drop those keys (and `multimedia`'s
+      `fedora44`), move it back to the native sets
       in `catalog`'s Fedora 44 and EL10 golden values and the `failures` strict case, and point
       `test_defaults_match_the_playbook_lists` back at Fedora 44 if wanted.
 

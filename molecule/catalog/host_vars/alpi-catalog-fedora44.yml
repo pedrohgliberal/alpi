@@ -7,7 +7,7 @@ _golden:
     google-roboto-fonts, ffmpeg, gstreamer1-plugins-bad-free-extras, gstreamer1-plugins-bad-freeworld,
     gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, chkrootkit, lynis, rkhunter,
     unhide, argyllcms, brave-browser, brave-origin, chromium, discord, drawy, gh, inkscape, telegram-desktop, code,
-    "@multimedia", kde-gtk-config, kpat, ktorrent, plasma-sdk, flatseal, gnome-tweaks, steam, clamav, clamav-update,
+    kde-gtk-config, kpat, ktorrent, plasma-sdk, flatseal, gnome-tweaks, steam, clamav, clamav-update,
     VirtualBox, akmod-VirtualBox, kernel-devel, asusctl, supergfxctl, asusctl-rog-gui, libva-intel-driver, intel-media-driver, mesa-va-drivers-freeworld,
     libva-utils, vdpauinfo, akmod-nvidia, xorg-x11-drv-nvidia, xorg-x11-drv-nvidia-cuda, xorg-x11-drv-nvidia-libs,
     xorg-x11-drv-nvidia-libs.i686, akmods, kmodtool, gcc, kernel-headers, vulkan,
@@ -19,7 +19,7 @@ _golden:
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
     intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, asus-linux]
-  unavailable: [libheif-freeworld]
+  unavailable: [libheif-freeworld, multimedia]
   pipx: ["markitdown[all]", "notebooklm-py[browser]", pdf2docx]
   # The Gitea and Forgejo CLIs and OpenLogi (its .rpm/.deb), from their releases everywhere (roles/upstream)
   upstream: [forgejo-cli, tea, openlogi]

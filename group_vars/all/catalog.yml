@@ -122,7 +122,9 @@ alpi_catalog:
   # extras it brings beyond the codecs, and its freeworld members are conditional.
   # Ubuntu (packages_os there too): its codecs without ubuntu-restricted-extras, which pulls in the
   # Microsoft fonts' EULA (PROPOSAL decision 6 of 2026-10-24)
-  multimedia:          {fedora: "@multimedia", el: ~, debian: ~, ubuntu: [ubuntu-restricted-addons, libavcodec-extra]}
+  # Unavailable on Fedora 44 while libheif-freeworld is (below): it is a conditional member of
+  # RPM Fusion's group there, so installing the group asks for it. The codecs stay (their own ids).
+  multimedia:          {fedora44: ~, fedora: "@multimedia", el: ~, debian: ~, ubuntu: [ubuntu-restricted-addons, libavcodec-extra]}
   gstreamer1-plugins-bad-free-extras: {fedora: gstreamer1-plugins-bad-free-extras, el: ~, deb: ~}
   gstreamer1-plugins-bad-freeworld:   {rpm: gstreamer1-plugins-bad-freeworld, deb: gstreamer1.0-plugins-bad}
   gstreamer1-plugins-ugly:            {rpm: gstreamer1-plugins-ugly, deb: gstreamer1.0-plugins-ugly}
