@@ -5,7 +5,7 @@ _golden:
   native: [7zip, 7zip-standalone, btop, curl, fastfetch, git, hwinfo, ImageMagick, lm_sensors, nodejs, nvtop, pipx, potrace,
     python3-pip, ShellCheck, testdisk, tmux, tuptime, unrar, unzip, uv, vim, wl-clipboard, zsh, fira-code-fonts,
     google-roboto-fonts, ffmpeg, gstreamer1-plugins-bad-free-extras, gstreamer1-plugins-bad-freeworld,
-    gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, libheif-freeworld, chkrootkit, lynis, rkhunter,
+    gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, chkrootkit, lynis, rkhunter,
     unhide, argyllcms, brave-browser, brave-origin, chromium, discord, drawy, gh, inkscape, telegram-desktop, code,
     "@multimedia", kde-gtk-config, kpat, ktorrent, plasma-sdk, flatseal, gnome-tweaks, steam, clamav, clamav-update,
     VirtualBox, akmod-VirtualBox, kernel-devel, asusctl, supergfxctl, asusctl-rog-gui, libva-intel-driver, intel-media-driver, mesa-va-drivers-freeworld,
@@ -19,7 +19,7 @@ _golden:
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
     intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, asus-linux]
-  unavailable: []
+  unavailable: [libheif-freeworld]
   pipx: ["markitdown[all]", "notebooklm-py[browser]", pdf2docx]
   # The Gitea and Forgejo CLIs and OpenLogi (its .rpm/.deb), from their releases everywhere (roles/upstream)
   upstream: [forgejo-cli, tea, openlogi]

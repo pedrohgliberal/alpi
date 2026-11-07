@@ -58,9 +58,10 @@
         only: AlmaLinux
         packages_add: [steam]
         strict: true
-        # The default set already has ids unavailable on EL (codecs, security, argyllcms)
+        # The default set already has ids unavailable on EL (codecs, security, argyllcms;
+        # libheif-freeworld until RPM Fusion rebuilds it)
         expect: ["Not available on AlmaLinux: gstreamer1-plugins-bad-free-extras,
-                  chkrootkit, unhide, argyllcms, steam", "alpi_strict is on"]
+                  libheif-freeworld, chkrootkit, unhide, argyllcms, steam", "alpi_strict is on"]
       # The catalog names upstream sources (the forge CLIs, OpenLogi, Roboto on EL) that
       # upstream_sources lacks
       - name: upstream source not defined

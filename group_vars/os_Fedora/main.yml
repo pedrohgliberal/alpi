@@ -1,5 +1,6 @@
 ---
-alpi_catalog_keys: [fedora, rpm, all]
+# Catalog keys per release: group_vars/os_Fedora_44 and os_Fedora_45 (never here: one key in two
+# groups of a host does not merge)
 packages_os: [multimedia]
 
 # MOK enrollment password (see group_vars/all/secureboot.yml)

@@ -82,7 +82,11 @@ and the ASUS COPR publish 45.
       passes the name check but `fedora44-personal` fails at the install: its updates ship
       `libheif-ffmpeg` 1.23.7, which obsoletes `libheif`, while RPM Fusion's stable
       `libheif-freeworld` 1.21.2-3 requires `libheif` 1.21.2 (depsolve error). Fedora 45 passes
-      (`catalog`, `fedora45-personal`). No release tag until these pass.
+      (`catalog`, `fedora45-personal`). Since 2026-11-07 (v1.5.0) the catalog marks it
+      unavailable on Fedora 44 and EL (`{fedora44: ~, el: ~}`: skipped with a warning; Fedora
+      45 keeps it). Once RPM Fusion rebuilds it: drop both keys, move it back to the native sets
+      in `catalog`'s Fedora 44 and EL10 golden values and the `failures` strict case, and point
+      `test_defaults_match_the_playbook_lists` back at Fedora 44 if wanted.
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
       puts first in `PATH`) or Fedora's `ansible` package, rerun `tests/run.sh full` and recheck

@@ -4,7 +4,7 @@
 _golden:
   native: [7zip, 7zip-standalone, btop, curl, fastfetch, git, hwinfo, ImageMagick, lm_sensors, nodejs, nvtop, pipx, potrace,
     python3-pip, ShellCheck, testdisk, tmux, tuptime, unrar, unzip, uv, vim-enhanced, wl-clipboard, zsh, fira-code-fonts,
-    ffmpeg, gstreamer1-plugins-bad-freeworld, gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, libheif-freeworld, lynis, rkhunter,
+    ffmpeg, gstreamer1-plugins-bad-freeworld, gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, lynis, rkhunter,
     brave-browser, brave-origin, chromium, discord, gh, code, kde-gtk-config, ktorrent, plasma-sdk, flatseal,
     gnome-tweaks, clamav, clamav-freshclam, VirtualBox-7.2, kernel-devel, gcc, make, elfutils-libelf-devel,
     libva-intel-driver, intel-media-driver]
@@ -16,7 +16,7 @@ _golden:
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
     intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [crb, epel, rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, virtualbox]
-  unavailable: [gstreamer1-plugins-bad-free-extras, chkrootkit, unhide, argyllcms, steam, asusctl,
+  unavailable: [gstreamer1-plugins-bad-free-extras, libheif-freeworld, chkrootkit, unhide, argyllcms, steam, asusctl,
     supergfxctl, asusctl-rog-gui, mesa-va-drivers-freeworld, libva-utils, vdpauinfo, nvidia-driver, nvidia-build,
     nvidia-vulkan, nvidia-vaapi]
   pipx: ["markitdown[all]", "notebooklm-py[browser]", pdf2docx]

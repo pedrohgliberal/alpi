@@ -1,0 +1,3 @@
+---
+# Fedora 45: what differs from the other Fedora releases (the rest in group_vars/os_Fedora)
+alpi_catalog_keys: [fedora45, fedora, rpm, all]

@@ -86,7 +86,8 @@ def test_only_the_running_desktop_is_listed(xdg, shown, hidden):
 
 
 def test_defaults_match_the_playbook_lists():
-    data, (_, packages) = real_choices("Fedora", "44", {"kde"})
+    # Fedora 45: every default is available there (44 lacks libheif-freeworld for now)
+    data, (_, packages) = real_choices("Fedora", "45", {"kde"})
     expected = set(data["packages_base"] + data["packages_os"] + data["packages_kde"])
     assert {c.id for c in packages if c.default} == expected
 
@@ -441,6 +442,12 @@ def test_load_data_layers_the_family_before_the_distro(tmp_path):
 @pytest.mark.parametrize("distro,major", [("Fedora", "44"), ("AlmaLinux", "10")])
 def test_rpm_distros_try_the_rpm_key_before_all(distro, major):
     assert pick.load_data(ROOT, distro, major)["alpi_catalog_keys"][-2:] == ["rpm", "all"]
+
+
+def test_fedora_keys_per_release():
+    # libheif-freeworld is unavailable on Fedora 44 only (catalog key fedora44)
+    assert pick.load_data(ROOT, "Fedora", "44")["alpi_catalog_keys"] == ["fedora44", "fedora", "rpm", "all"]
+    assert pick.load_data(ROOT, "Fedora", "45")["alpi_catalog_keys"] == ["fedora45", "fedora", "rpm", "all"]
 
 
 def test_every_distro_has_a_family():

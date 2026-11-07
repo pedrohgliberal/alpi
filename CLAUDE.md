@@ -276,7 +276,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   too.
 - Catalog values per distro may be `{native: …, repo: …}`: a repository only that distro needs
   (Oracle VirtualBox on EL). Catalog keys (`alpi_catalog_keys` per distro): Fedora
-  `fedora, rpm, all`, EL `el10, el, rpm, all`, Debian 13 `debian13, debian, deb, all`, Ubuntu
+  `fedora44`/`fedora45, fedora, rpm, all` (per release in `group_vars/os_Fedora_44`/`_45`, like Ubuntu's), EL `el10, el, rpm, all`, Debian 13 `debian13, debian, deb, all`, Ubuntu
   26.04 `ubuntu2604, ubuntu, deb, all`, Ubuntu 24.04 `ubuntu2404, ubuntu, deb, all` (all in the
   matrix; first releases after the VM checklist). Ubuntu's keys are per release, in
   `group_vars/os_Ubuntu_24` and `os_Ubuntu_26` (env_setup's `os_<distro>_<major>` group; never the
@@ -397,7 +397,9 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     publishes Roboto and tea v2, deletes fj and runs again (Molecule's side_effect step, added to
     the scenario's test_sequence): replaced, fj v1 back; openlogi stand-in RPMs (rpmbuild) 1.0.0
     then 2.0.0 next to decoy assets; forges unreachable keep v0,
-    `packages_absent` removes them; the personal and work scenarios install the real releases), `bootstrap`
+    `packages_absent` removes them; the personal and work scenarios install the real releases,
+    with a no-op `udevadm` from `shared/no_udevd.yml`: no udevd in a container, and OpenLogi's
+    package scripts fail without it), `bootstrap`
     (bootstrap.sh with scripted answers, picker in text mode, on Fedora 44, Debian 13, Ubuntu 26.04 and 24.04 (classic sudo, no sudo.ws: the inventory picks `sudo`); a Debian
     13 without sudo must stop before installing anything and print the `su -` command; on each of the others a user with a password then runs a become task through the repo's `inventory.ini` and `ansible.cfg`: Ubuntu's `sudo` is sudo-rs, which wraps become's prompt so Ansible times out, so the inventory picks `sudo.ws` where it exists), `common` (env_setup +
     `roles/common` on `almalinux/10-init` with systemd: static hostname via hostnamectl, git),

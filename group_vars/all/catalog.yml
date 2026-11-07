@@ -1,7 +1,8 @@
 ---
 # Package catalog: logical id -> what to install on each distro.
 # Keys are tried in the order of alpi_catalog_keys (group_vars/os_*), most specific first:
-#   Fedora: fedora, rpm, all        AlmaLinux 10: el10, el, rpm, all
+#   Fedora 44: fedora44, fedora, rpm, all   Fedora 45: fedora45, fedora, rpm, all
+#   AlmaLinux 10: el10, el, rpm, all
 #   Debian 13: debian13, debian, deb, all       Ubuntu 26.04: ubuntu2604, ubuntu, deb, all
 #   Ubuntu 24.04: ubuntu2404, ubuntu, deb, all
 # 'rpm' holds the RPM names Fedora and EL share, 'deb' those Debian and Ubuntu share; 'all' only
@@ -129,7 +130,10 @@ alpi_catalog:
   # Built against vlc-libs/libheif from EPEL on EL; libheif-freeworld pins libheif's exact
   # version, so the transaction fails whenever EPEL updates libheif before RPM Fusion rebuilds.
   vlc-plugins-freeworld:              {rpm: vlc-plugins-freeworld, deb: ~}
-  libheif-freeworld:                  {rpm: libheif-freeworld, deb: libheif-plugin-libde265}
+  # Unavailable on Fedora 44 and EL until RPM Fusion rebuilds it (TODO.md, Maintenance; 2026-11-07):
+  # EL10's 1.23.6 needs a libheif EPEL no longer has, Fedora 44's 1.21.2-3 a libheif that 44's
+  # libheif-ffmpeg 1.23.7 obsoletes. Fedora 45's resolves.
+  libheif-freeworld:                  {fedora44: ~, el: ~, rpm: libheif-freeworld, deb: libheif-plugin-libde265}
 
   # --- Hardware (feature_packages) ---
   # Video acceleration. EL10's mesa has no VA-API drivers and no freeworld build exists for it.
