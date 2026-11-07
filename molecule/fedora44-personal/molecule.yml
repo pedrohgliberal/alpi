@@ -18,3 +18,5 @@ provisioner:
     # 'memory' (a container sees the host's swap and zswap). Setting skip-tags replaces
     # Molecule's default, so its own tags are repeated.
     skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
+  playbooks:
+    prepare: prepare.yml

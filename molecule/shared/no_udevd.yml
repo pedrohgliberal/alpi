@@ -1,0 +1,36 @@
+---
+# Containers run no udevd. OpenLogi's package scripts (roles/upstream, release_package) run
+# 'udevadm control --reload-rules' under set -e whenever udevadm exists, which fails without udevd:
+# dpkg leaves the package half-configured, and Ansible's dnf5 module reports the install as failed
+# although rpm only warns. A booted machine runs udevd. So the scenarios that install the real
+# release get a udevadm that does nothing:
+# - apt: in /usr/local/sbin, first in the PATH dpkg gives its scripts;
+# - dnf: rpm gives its scriptlets a fixed PATH (/sbin:/bin:/usr/sbin:/usr/bin), so the real one is
+#   installed now (the personal packages pull it in anyway) and replaced.
+- name: Prepare | No-op udevadm (no udevd in a container)
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Prepare | Package manager
+      ansible.builtin.setup:
+        gather_subset: [pkg_mgr]
+
+    - name: Prepare | No-op udevadm in /usr/local/sbin (apt)
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/udevadm
+        content: "#!/bin/sh\nexit 0\n"
+        mode: "0755"
+      when: ansible_facts['pkg_mgr'] == 'apt'
+
+    - name: Prepare | systemd-udev (dnf)
+      ansible.builtin.dnf:
+        name: systemd-udev
+        state: present
+      when: ansible_facts['pkg_mgr'] in ['dnf', 'dnf5']
+
+    - name: Prepare | Replace udevadm with a no-op (dnf)
+      ansible.builtin.copy:
+        dest: /usr/bin/udevadm
+        content: "#!/bin/sh\nexit 0\n"
+        mode: "0755"
+      when: ansible_facts['pkg_mgr'] in ['dnf', 'dnf5']

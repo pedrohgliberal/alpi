@@ -1,5 +1,5 @@
 ---
-# Fedora 45, personal machine, as fedora44-personal (its verify.yml; the same custom.yml and
+# Fedora 45, personal machine, as fedora44-personal (its prepare.yml and verify.yml; the same custom.yml and
 # selection.yml in host_vars): repos (RPM Fusion, Brave, VS Code, GitHub CLI, the ASUS COPR) and
 # the packages role with real installs, ASUS, Intel and AMD forced.
 platforms:
@@ -14,4 +14,5 @@ provisioner:
     # As fedora44-personal
     skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
   playbooks:
+    prepare: ../fedora44-personal/prepare.yml
     verify: ../fedora44-personal/verify.yml

@@ -2,6 +2,9 @@
 - name: Prepare | Shared
   ansible.builtin.import_playbook: ../shared/prepare.yml
 
+- name: Prepare | No udevd
+  ansible.builtin.import_playbook: ../shared/no_udevd.yml
+
 # A machine set up by AAPI: its repository files, as its yum_repository tasks wrote them. ALPI
 # must rewrite these (same ids), not add the same repositories again under other ids.
 - name: Prepare | AAPI's repository files

@@ -2,6 +2,9 @@
 - name: Prepare | Shared
   ansible.builtin.import_playbook: ../shared/prepare.yml
 
+- name: Prepare | No udevd
+  ansible.builtin.import_playbook: ../shared/no_udevd.yml
+
 - name: Prepare | Personal machine on apt (debian13-personal, ubuntu2604-personal, ubuntu2404-personal)
   hosts: all
   gather_facts: false
@@ -10,15 +13,6 @@
       ansible.builtin.apt:
         name: nano
         state: present
-
-    # No udevd in a container: OpenLogi's postinst runs 'udevadm control --reload-rules' under
-    # set -e, which fails there and leaves the package half-configured (rpm only warns). A
-    # booted machine runs udevd. dpkg puts /usr/local/sbin first in its scripts' PATH.
-    - name: Prepare | No-op udevadm (no udevd in a container)
-      ansible.builtin.copy:
-        dest: /usr/local/sbin/udevadm
-        content: "#!/bin/sh\nexit 0\n"
-        mode: "0755"
 
     # Held for 150 s from here: the converge's first dpkg step (repos' python3-debian) comes well
     # within that and outlasts the apt module's default 60 s wait

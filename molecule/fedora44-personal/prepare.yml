@@ -1,0 +1,6 @@
+---
+- name: Prepare | Shared
+  ansible.builtin.import_playbook: ../shared/prepare.yml
+
+- name: Prepare | No udevd
+  ansible.builtin.import_playbook: ../shared/no_udevd.yml
