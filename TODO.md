@@ -78,8 +78,11 @@ and the ASUS COPR publish 45.
 - [ ] RPM Fusion's `libheif-freeworld` 1.23.6 needs a `libheif` that Fedora and EPEL no longer
       publish (2026-11-05): `catalog`, `fedora44-personal` and `el10-work` fail at the name check
       until it is rebuilt. Rerun them then (`tests/run.sh catalog fedora44-personal el10-work`).
-      On 2026-11-07 only `alpi-catalog-el10` still failed in `catalog` (EPEL); Fedora 44 and 45
-      resolved it.
+      Full run of 2026-11-07: EL10 still fails (`el10-work`, `alpi-catalog-el10`). Fedora 44
+      passes the name check but `fedora44-personal` fails at the install: its updates ship
+      `libheif-ffmpeg` 1.23.7, which obsoletes `libheif`, while RPM Fusion's stable
+      `libheif-freeworld` 1.21.2-3 requires `libheif` 1.21.2 (depsolve error). Fedora 45 passes
+      (`catalog`, `fedora45-personal`). No release tag until these pass.
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
       puts first in `PATH`) or Fedora's `ansible` package, rerun `tests/run.sh full` and recheck
