@@ -17,7 +17,7 @@ The way around both is the other direction: **the server runs in the VM and the 
 to it** through a NAT port forward. The rule can be added while the VM is running, without
 disturbing a run in progress.
 
-In the commands below, replace `fedora44-alpi` with the VM's name (`VBoxManage list runningvms`)
+In the commands below, replace `fedora45-alpi` with the VM's name (`VBoxManage list runningvms`)
 and `user` with the user inside it.
 
 ## Option 1: SSH/scp (both directions)
@@ -25,7 +25,7 @@ and `user` with the user inside it.
 On the host:
 
 ```bash
-VBoxManage controlvm fedora44-alpi natpf1 "ssh,tcp,127.0.0.1,2222,,22"
+VBoxManage controlvm fedora45-alpi natpf1 "ssh,tcp,127.0.0.1,2222,,22"
 ```
 
 In the VM:
@@ -55,7 +55,7 @@ scp -P 2222 file user@127.0.0.1:~          # host to VM
 On the host:
 
 ```bash
-VBoxManage controlvm fedora44-alpi natpf1 "http,tcp,127.0.0.1,8080,,8000"
+VBoxManage controlvm fedora45-alpi natpf1 "http,tcp,127.0.0.1,8080,,8000"
 ```
 
 In the VM, in the files' directory:
@@ -73,7 +73,7 @@ curl -O http://127.0.0.1:8080/run1.log
 ## Removing the rules
 
 ```bash
-VBoxManage controlvm fedora44-alpi natpf1 delete ssh    # or: delete http
+VBoxManage controlvm fedora45-alpi natpf1 delete ssh    # or: delete http
 ```
 
 With more than one VM at a time, give each one its own host port (for example `2222` and

@@ -1,12 +1,13 @@
-# VM checklist (TODO section 4: "VM with EFI + Secure Boot")
+# VM checklist (TODO section 4: "VM with EFI + Secure Boot"; section 8: Fedora 45)
 
 What containers cannot cover: real Secure Boot and MOK enrollment, module builds and signing,
 `dracut`, the reboot gate on a real kernel, GRUB, the transient hostname, and desktop sessions.
-Three VMs in VirtualBox, all EFI + Secure Boot:
+Three VMs in VirtualBox, all EFI + Secure Boot. Fedora 44 KDE passed on 2026-10-22; the Fedora VM
+is now Fedora 45, the newest release in the support matrix:
 
 | VM | Like | Covers |
 |---|---|---|
-| `fedora44-alpi`, Fedora 44 **KDE** | noir | akmods key, `akmod-VirtualBox` signed, NVIDIA akmod build + `dracut` (forced on), Konsole |
+| `fedora45-alpi`, Fedora 45 **KDE** | noir's next release | akmods key, `akmod-VirtualBox` signed, NVIDIA akmod build + `dracut` (forced on) on 45's kernel, Konsole and the cedilla on Plasma 6.8 (KWin 6.8: the XWayland workaround stays off) |
 | `el10-alpi`, AlmaLinux 10 **Workstation (GNOME)** | work machine | Oracle VirtualBox's own key, Roboto from upstream, Ptyxis in a real session (AAPI's VM was KDE) |
 | `el10-kde-alpi`, AlmaLinux 10 **KDE** | | KDE on EL (EPEL's Plasma): Konsole, the cedilla on XWayland with EL10's KWin, the KDE flatpaks |
 
@@ -30,7 +31,7 @@ mkvm() {  # mkvm <name> <ostype> <iso>
   VBoxManage modifynvram "$VM" enrollorclpk
   VBoxManage modifynvram "$VM" secureboot --enable
 }
-mkvm fedora44-alpi Fedora_64 "$HOME/Downloads/Fedora-KDE-Desktop-Live-44-x86_64.iso"   # adjust ISO names
+mkvm fedora45-alpi Fedora_64 "$HOME/Downloads/Fedora-KDE-Desktop-Live-45-x86_64.iso"   # adjust ISO names
 mkvm el10-alpi Oracle10_64 "$HOME/Downloads/AlmaLinux-10-latest-x86_64-dvd.iso"
 mkvm el10-kde-alpi Oracle10_64 "$HOME/Downloads/AlmaLinux-10-latest-x86_64-KDE.iso"   # AlmaLinux KDE live
 ```
@@ -38,7 +39,7 @@ mkvm el10-kde-alpi Oracle10_64 "$HOME/Downloads/AlmaLinux-10-latest-x86_64-KDE.i
 - [ ] Install: Fedora KDE live; AlmaLinux with the **Workstation** environment (GNOME); AlmaLinux
       KDE live. An admin user (`wheel`) on each.
 - [ ] In each VM: `mokutil --sb-state` → `SecureBoot enabled`; note `hostname` and `uname -r`.
-      📸 both.
+      Fedora: `cat /etc/fedora-release` → Fedora release 45. 📸 both.
 - [ ] VM off, clean snapshot: `VBoxManage snapshot <vm> take clean`.
 
 ## Step 1: bootstrap (every VM)
@@ -115,7 +116,9 @@ ansible-playbook site.yml -K 2>&1 | tee run2.log
       install: hold Shift or press Esc). Press `e` on the default entry → `set gfxpayload=keep`
       is there. 📸 (phone photo of the `e` screen).
 - [ ] **Codecs:** `rpm -q ffmpeg` installed, `rpm -q ffmpeg-free` not; `rpm -q
-      vlc-plugins-freeworld libheif-freeworld` both installed.
+      vlc-plugins-freeworld libheif-freeworld` both installed. (If the name check stopped the run on
+      `libheif-freeworld`, see `TODO.md`, Maintenance: RPM Fusion's rebuild lags Fedora/EPEL; it
+      resolved on Fedora 45 in containers on 2026-11-07.)
 - [ ] **ClamAV:** `systemctl is-active clamav-freshclam` → active.
 - [ ] **Flatpaks:** `flatpak list --app` has the defaults (EL also Telegram, Drawy, Inkscape and
       the GNOME ones).
@@ -126,6 +129,10 @@ ansible-playbook site.yml -K 2>&1 | tee run2.log
 - [ ] **Terminal:** Fedora: Konsole opens with the kali-like-alt profile. EL: **Ptyxis** opens at
       120x35, underline cursor, Fira Code 10, opacity 0.95. 📸 each.
 - [ ] **Cedilla** (after logout/login): `'` + `c` → `ç` in a text editor and in Brave.
+- [ ] **Cedilla workaround off (Fedora 45, KWin 6.8):** `rpm -q kwin` → 6.8 or newer; the run
+      printed no cedilla login notice; `grep -l ozone-platform=x11 ~/.local/share/applications/*.desktop`
+      → nothing (Brave and VS Code run on native Wayland); `'` + `c` → `ç` in Brave **and** VS Code
+      all the same. 📸 VS Code with the `ç`.
 - [ ] **AI tools:** `claude --version`; `ls ~/.local/bin/agy`; the Antigravity IDE in the menu; `pipx list`
       → markitdown, notebooklm-py, pdf2docx.
 - [ ] **gh reminder:** the run's end printed "The GitHub CLI is not logged in"; after
