@@ -209,6 +209,11 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
 - **2026-10-28** `v1.4.0` tagged on `a57929b` (full green): `tea` and `fj` (`forgejo-cli`), the
   Gitea and Forgejo CLIs, from their releases on every distro through `roles/upstream`'s new
   `release_binary` type (`docs(todo): v1.4.0 tagged`).
+- **2026-11-07** `v1.5.0` tagged on `e3f4a8a` (full green; `catalog` rerun after a Flathub
+  hiccup): OpenLogi from its vendor's `.rpm`/`.deb` (`roles/upstream`'s new `release_package`
+  type), Fedora 45 and Ubuntu 24.04 support, btop as the default; `libheif-freeworld` (and
+  Fedora 44's `@multimedia`) skipped with a warning on Fedora 44 and EL until RPM Fusion
+  rebuilds it (`docs(todo): v1.5.0 tagged`).
 
 ## 6. Swap (zram)
 
