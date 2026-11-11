@@ -239,6 +239,10 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
 - **2026-11-05** `user` scenario on Ubuntu 24.04 (`alpi-user-ubuntu2404`): zsh, desktop and the AI
   tools for a regular user, the Antigravity IDE's AppArmor profile parsed by 24.04's own
   `apparmor_parser` (`test(user): Ubuntu 24.04 instance`).
+- **2026-11-11** VM checklist (`tests/vm-checklist-apt.md`) passed on Ubuntu 24.04.5 and Kubuntu
+  24.04.5 (EFI + Secure Boot). Plasma 5.27 needs nothing of its own: cedilla and the Konsole
+  profile and `konsolerc` work as they are on Kubuntu's default session
+  (`docs(todo): Ubuntu and Kubuntu 24.04.5 VM-checked`).
 
 ## 8. Fedora 45
 
