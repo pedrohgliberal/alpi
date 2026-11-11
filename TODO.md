@@ -57,8 +57,6 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
       Canonical's NVIDIA modules must follow the running kernel's flavour
       (`linux-headers-generic-hwe-24.04`, `linux-modules-nvidia-NNN-open-generic-hwe-24.04`).
       `alpi-kvm.conf` is needed there below 6.16, as on Debian (set on every distro already).
-- [ ] **Release:** after `tests/run.sh full`, the next minor release says Ubuntu and Kubuntu
-      24.04.5 are VM-checked.
 
 ## 8. Fedora 45
 
@@ -92,7 +90,13 @@ and the ASUS COPR publish 45.
       the expected log noise listed in `CLAUDE.md` (Molecule section): the `molecule/default`
       CRITICAL must still be non-fatal, the `containers.podman` in `~/.ansible/collections`
       must still be newer than the system copy, and the logs must have no `DEPRECATION`. Versions
-      in the last green run, 2026-10-24 (AlmaLinux 10 work machine): Molecule 26.10.0 (host pipx),
-      ansible-core 2.21.5 (Molecule's venv), `containers.podman` 1.21.1 and `community.general`
-      11.4.9 (user; no system copy there). On 2026-10-06 (Fedora): ansible-core 2.20.7 (system),
+      in the last green run, 2026-11-11 (AlmaLinux 10 work machine): Molecule 26.11.0 (host pipx,
+      on uv's CPython 3.13.17: ansible-core 2.22 needs 3.13+, EL10 has 3.12), ansible-core 2.22.0
+      (Molecule's venv; 2.21 cannot run modules on Python 3.15, the `fedora:45`/`fedora:46`
+      images'), `containers.podman` 1.21.2 and `community.general` 11.4.10 (user; no system copy
+      there). That run's new noise, still to clear: `[DEPRECATION WARNING]` for the `tree` and
+      `oneline` callbacks at the top of every log (loaded outside ALPI's config: find who lists
+      them), `ansible.module_utils.six` in the package and flatpak install tasks and
+      `shared/pinned_pair.yml` (find the module), and `Encountered 1 template error` from
+      `roles/akmods_mok`'s task names when the block is skipped (`_signer` is `{}`: no `label`). On 2026-10-06 (Fedora): ansible-core 2.20.7 (system),
       `containers.podman` 1.21.0 (user) vs 1.20.2 (system).

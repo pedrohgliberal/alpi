@@ -319,7 +319,9 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   When behavior changes, update the scenarios that cover it. A change without tests is not done.
 - Driver: podman (`molecule-plugins[podman]`), installed with pipx on the host:
   `pipx install molecule && pipx inject molecule 'molecule-plugins[podman]' ansible-core pytest`
-  (pytest: `tests/run.sh` runs the unit tests with the venv's Python).
+  (pytest: `tests/run.sh` runs the unit tests with the venv's Python). The venv needs Python
+  3.13+ (ansible-core 2.22, the first that runs modules on Fedora 45's Python 3.15): on EL10,
+  `uv python install 3.13` and `pipx reinstall molecule --python ~/.local/bin/python3.13`.
   The Molecule controller runs on the host, but every playbook run targets the scenario's
   container, never the host: plays get their hosts from Molecule's inventory, not `localhost`.
 - Layout: `molecule/<scenario>/` (`molecule.yml`, `converge.yml`, `verify.yml`), one scenario per
@@ -349,7 +351,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   - In this harness, pipe Molecule's output (`molecule … 2>&1 | cat`): Ansible refuses to run
     with non-blocking stdio.
   - Molecule runs the first `ansible-playbook` in `PATH`. `tests/run.sh` puts the pipx venv's own
-    `ansible-core` (a Molecule dependency, 2.21 on 2026-10-08) first, so both machines test with
+    `ansible-core` (a Molecule dependency, 2.22 since 2026-11-11) first, so both machines test with
     the same controller; the system one is 2.20 on the Fedora personal machine and 2.16 on the
     AlmaLinux 10 work machine, whose dnf5 module cannot install by URL. Plain `molecule test`
     uses the system one. It needs `containers.podman` and `community.general` in

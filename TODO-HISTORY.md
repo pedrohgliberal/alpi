@@ -243,6 +243,10 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   24.04.5 (EFI + Secure Boot). Plasma 5.27 needs nothing of its own: cedilla and the Konsole
   profile and `konsolerc` work as they are on Kubuntu's default session
   (`docs(todo): Ubuntu and Kubuntu 24.04.5 VM-checked`).
+- **2026-11-11** `v1.5.1` tagged on `3403d5c` (full green; `ubuntu2604`, `common` and `services`
+  rerun after a network and a container hiccup): Ubuntu and Kubuntu 24.04.5 VM-checked, no code
+  changes. Molecule's venv rebuilt on Python 3.13 with ansible-core 2.22.0 for it: 2.21 cannot
+  run modules on the `fedora:45`/`fedora:46` images' Python 3.15 (`docs(todo): v1.5.1 tagged`).
 
 ## 8. Fedora 45
 
