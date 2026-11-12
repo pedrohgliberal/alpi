@@ -58,15 +58,6 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
       (`linux-headers-generic-hwe-24.04`, `linux-modules-nvidia-NNN-open-generic-hwe-24.04`).
       `alpi-kvm.conf` is needed there below 6.16, as on Debian (set on every distro already).
 
-## 8. Fedora 45
-
-In the support matrix and the container tests since 2026-11-07 (`TODO-HISTORY.md`). Checked in
-`fedora:45` on 2026-11-07: dnf5 5.4.7, KWin 6.8.2 (the cedilla workaround stays off), RPM Fusion
-and the ASUS COPR publish 45.
-
-- [ ] **Release:** after `tests/run.sh full`, the next minor release says Fedora 45 is checked
-      on real hardware (noir, 2026-11-12) and that Fedora starts at 44.
-
 ## Maintenance
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`

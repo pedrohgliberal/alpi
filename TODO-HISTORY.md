@@ -261,6 +261,9 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   check and then failed to resolve; 41 and 42 are past their end of life, 43 near it. A unit test
   checks that every supported release has catalog keys, `unsupported` refuses Fedora 43
   (`fix(support): Fedora from 44; Fedora 45 checked on noir`).
+- **2026-11-12** `v1.6.0` tagged on `3bc68cd` (full green, first run): `libheif-freeworld` and
+  Fedora 44's `@multimedia` back on Fedora 44 and EL, Fedora from 44, Fedora 45 checked on noir
+  (`docs(todo): v1.6.0 tagged`).
 
 ## Maintenance
 
