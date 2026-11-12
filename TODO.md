@@ -52,6 +52,42 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
       (`linux-headers-generic-hwe-24.04`, `linux-modules-nvidia-NNN-open-generic-hwe-24.04`).
       `alpi-kvm.conf` is needed there below 6.16, as on Debian (set on every distro already).
 
+## 9. NVIDIA: AlmaLinux 10, and older GPUs on Ubuntu
+
+The catalog leaves NVIDIA out on EL (`nvidia-driver`, `nvidia-build`, `nvidia-vulkan`,
+`nvidia-vaapi`: `el: ~`, skipped with a warning), so an EL10 machine with an NVIDIA GPU keeps
+nouveau (reported 2026-11-12: an AlmaLinux notebook with a GeForce MX450, Turing). AAPI never
+installed it, and RPM Fusion's akmods path is Fedora's. Checked in `almalinux:10` (10.2) on
+2026-11-12: AlmaLinux's own repository, enabled by `almalinux-release-nvidia-driver` (extras),
+`almalinux-nvidia` ("AlmaLinux 10 - NVIDIA Driver & CUDA"), ships driver 620.70.06
+(`nvidia-driver`, `nvidia-driver-cuda`) and prebuilt open modules (`nvidia-open-kmod` →
+`kmod-nvidia-open`, signer "AlmaLinux NVIDIA Module CA"; Turing and newer only), with a
+posttrans that rebuilds the initramfs for the GSP firmware.
+
+- [ ] **Catalog and repository:** EL values for `nvidia-driver` (`nvidia-open-kmod`,
+      `nvidia-driver`, `nvidia-driver-cuda`), and for `nvidia-vulkan`/`nvidia-vaapi` where the
+      repository has them (check); `nvidia-build` stays `~` (nothing is built). The repository
+      through `almalinux-release-nvidia-driver` (a `repo:` entry in `roles/repos`, as EL's other
+      release packages). Golden values in `catalog` (EL10), `el10-work` installs it.
+- [ ] **Secure Boot:** EL's `kmod_signer` stays `none` if the AlmaLinux NVIDIA Module CA is
+      trusted under Secure Boot without a MOK *(check on real hardware)*; otherwise enroll its
+      certificate through `roles/akmods_mok/tasks/enroll.yml`. `secureboot`'s EL instance checks
+      the outcome.
+- [ ] **roles/nvidia:** the power options (`nvidia_modprobe_conf`) on EL; no rebuild step (the
+      modules are prebuilt: check that a missing module for the running kernel is reported, not
+      built). Pre-Turing GPUs (no open-module support): decide whether to skip with a message.
+- [ ] **Real hardware:** the AlmaLinux notebook (MX450, EFI + Secure Boot): nouveau gone,
+      `nvidia-smi` lists the GPU, the module loads with Secure Boot on; then a release.
+- [ ] **Pre-Turing GPUs on Ubuntu (24.04, 26.04):** the pinned `nvidia-driver-615-open` with
+      Canonical's `linux-modules-nvidia-615-open-generic` are open modules, which drive only
+      Turing and newer (GTX 16xx, RTX 20xx, MX450 and later); a Maxwell, Pascal or Volta GPU
+      (GTX 9xx/10xx…) gets a driver that cannot drive it *(check)*. Decide: a proprietary
+      (non-open) branch for those GPUs (which branch still supports them, and Canonical's signed
+      `linux-modules-nvidia-NNN-generic` for it), or skip with a message. Detection needs the
+      GPU's generation (PCI device id, `lspci -nn`), not only "NVIDIA present"; the same applies
+      to AlmaLinux's open modules (above). Debian's 550 (proprietary) and Fedora's RPM Fusion
+      driver are not affected *(check Fedora's branch support for those GPUs)*.
+
 ## Maintenance
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
