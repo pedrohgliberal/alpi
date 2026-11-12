@@ -26,9 +26,6 @@ container or VM before code relies on them. Consequences to keep in mind:
       real hardware (`nvidia-smi` lists Steam) with Debian's 550 and Ubuntu's 615 drivers; drop the
       copy if switcheroo's offload does not work there. Steps: `tests/noir-checklist-apt.md`
       (external-drive installs on noir, MOK baseline and cleanup).
-- [ ] **Release:** after `tests/run.sh full` and the VM checklist per distro, the next minor
-      release says Debian 13 (and Ubuntu 26.04, or a release of its own) is VM-checked; `v1.2.0`
-      and `v1.3.0` shipped them as a preview (decided 2026-10-25).
 
 ## 7. Ubuntu 24.04 LTS (after Phase 5's Ubuntu 26.04 VM checklist)
 

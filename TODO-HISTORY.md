@@ -218,6 +218,10 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   on every VM: Kubuntu 26.04 (2026-11-05), Debian 13 GNOME and KDE and Ubuntu 26.04 (2026-11-12),
   with Ubuntu and Kubuntu 24.04.5 (section 7) (`docs(todo): Debian 13 and Ubuntu 26.04
   VM-checked`).
+- **2026-11-12** Phase 5's release: `v1.7.0` tagged on `018e7d1` (full green; `catalog` rerun
+  after a timeout reading the Antigravity update manifest): Debian 13 and Ubuntu/Kubuntu 24.04 and
+  26.04 released and VM-checked, no longer a preview, and an optional GitHub token for the release
+  queries (`docs(todo): v1.7.0 tagged`).
 
 ## 6. Swap (zram)
 
