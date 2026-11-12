@@ -254,7 +254,6 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   name on a Fedora 45 instance against its golden values, `fedora45-personal` installs with
   `fedora44-personal`'s settings and verify, `unsupported` refuses Fedora 46
   (`feat(fedora): Fedora 45 support`).
-
 ## Maintenance
 
 - **2026-10-23** VirtualBox vs KVM on kernel 6.12+: kvm keeps VMX on from load
@@ -273,3 +272,8 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
 - **2026-10-24** Recheck after Molecule 26.9.0 → 26.10.0: expected log noise unchanged; the only
   deprecation, `bool` on an int in `molecule/user/verify.yml`, had made three absence checks
   always pass, fixed (`d5de497`).
+- **2026-11-12** RPM Fusion rebuilt `libheif-freeworld` (1.23.7 on Fedora 44 and EL10, matching
+  Fedora's and EPEL's `libheif` 1.23.7; `@multimedia` resolves again on Fedora 44): the
+  `fedora44`/`el` skips of `libheif-freeworld` and `multimedia` from v1.5.0 removed, golden values
+  and the `failures` strict case back (`fix(catalog): libheif-freeworld and @multimedia back on
+  Fedora 44 and EL`).

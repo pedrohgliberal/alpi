@@ -16,7 +16,7 @@ container or VM before code relies on them. Consequences to keep in mind:
 - Ubuntu's major version (`26`) is the same for 26.04 and 26.10: its support entry compares the
   full `distribution_version`.
 - More controller lines: Debian's ansible-core 2.19 and Ubuntu's 2.20 (Data Tagging) next to
-  EL10's 2.16 and Molecule's 2.21; `debian13-personal` and `ubuntu2604-personal` resolve with the
+  EL10's 2.16 and Molecule's 2.22; `debian13-personal` and `ubuntu2604-personal` resolve with the
   container's own ansible-core, as `el10-work` does (`shared/verify_native_controller.yml`).
 
 ### Phase 5 — tests and release
@@ -69,21 +69,6 @@ and the ASUS COPR publish 45.
       gate, Konsole and the cedilla in a Plasma 6.8 session; then a release.
 
 ## Maintenance
-
-- [ ] RPM Fusion's `libheif-freeworld` 1.23.6 needs a `libheif` that Fedora and EPEL no longer
-      publish (2026-11-05): `catalog`, `fedora44-personal` and `el10-work` fail at the name check
-      until it is rebuilt. Rerun them then (`tests/run.sh catalog fedora44-personal el10-work`).
-      Full run of 2026-11-07: EL10 still fails (`el10-work`, `alpi-catalog-el10`). Fedora 44
-      passes the name check but `fedora44-personal` fails at the install: its updates ship
-      `libheif-ffmpeg` 1.23.7, which obsoletes `libheif`, while RPM Fusion's stable
-      `libheif-freeworld` 1.21.2-3 requires `libheif` 1.21.2 (depsolve error). Fedora 45 passes
-      (`catalog`, `fedora45-personal`). Since 2026-11-07 (v1.5.0) the catalog marks it
-      unavailable on Fedora 44 and EL (`{fedora44: ~, el: ~}`: skipped with a warning; Fedora
-      45 keeps it), and `multimedia` on Fedora 44 too (`@multimedia` has it as a conditional
-      member there). Once RPM Fusion rebuilds it: drop those keys (and `multimedia`'s
-      `fedora44`), move it back to the native sets
-      in `catalog`'s Fedora 44 and EL10 golden values and the `failures` strict case, and point
-      `test_defaults_match_the_playbook_lists` back at Fedora 44 if wanted.
 
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
       puts first in `PATH`) or Fedora's `ansible` package, rerun `tests/run.sh full` and recheck

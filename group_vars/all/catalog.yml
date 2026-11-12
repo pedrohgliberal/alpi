@@ -122,9 +122,7 @@ alpi_catalog:
   # extras it brings beyond the codecs, and its freeworld members are conditional.
   # Ubuntu (packages_os there too): its codecs without ubuntu-restricted-extras, which pulls in the
   # Microsoft fonts' EULA (PROPOSAL decision 6 of 2026-10-24)
-  # Unavailable on Fedora 44 while libheif-freeworld is (below): it is a conditional member of
-  # RPM Fusion's group there, so installing the group asks for it. The codecs stay (their own ids).
-  multimedia:          {fedora44: ~, fedora: "@multimedia", el: ~, debian: ~, ubuntu: [ubuntu-restricted-addons, libavcodec-extra]}
+  multimedia:          {fedora: "@multimedia", el: ~, debian: ~, ubuntu: [ubuntu-restricted-addons, libavcodec-extra]}
   gstreamer1-plugins-bad-free-extras: {fedora: gstreamer1-plugins-bad-free-extras, el: ~, deb: ~}
   gstreamer1-plugins-bad-freeworld:   {rpm: gstreamer1-plugins-bad-freeworld, deb: gstreamer1.0-plugins-bad}
   gstreamer1-plugins-ugly:            {rpm: gstreamer1-plugins-ugly, deb: gstreamer1.0-plugins-ugly}
@@ -132,10 +130,7 @@ alpi_catalog:
   # Built against vlc-libs/libheif from EPEL on EL; libheif-freeworld pins libheif's exact
   # version, so the transaction fails whenever EPEL updates libheif before RPM Fusion rebuilds.
   vlc-plugins-freeworld:              {rpm: vlc-plugins-freeworld, deb: ~}
-  # Unavailable on Fedora 44 and EL until RPM Fusion rebuilds it (TODO.md, Maintenance; 2026-11-07):
-  # EL10's 1.23.6 needs a libheif EPEL no longer has, Fedora 44's 1.21.2-3 a libheif that 44's
-  # libheif-ffmpeg 1.23.7 obsoletes. Fedora 45's resolves.
-  libheif-freeworld:                  {fedora44: ~, el: ~, rpm: libheif-freeworld, deb: libheif-plugin-libde265}
+  libheif-freeworld:                  {rpm: libheif-freeworld, deb: libheif-plugin-libde265}
 
   # --- Hardware (feature_packages) ---
   # Video acceleration. EL10's mesa has no VA-API drivers and no freeworld build exists for it.
