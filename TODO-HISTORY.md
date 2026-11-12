@@ -214,6 +214,10 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   type), Fedora 45 and Ubuntu 24.04 support, btop as the default; `libheif-freeworld` (and
   Fedora 44's `@multimedia`) skipped with a warning on Fedora 44 and EL until RPM Fusion
   rebuilds it (`docs(todo): v1.5.0 tagged`).
+- **2026-11-12** Phase 5's VM checklist (`tests/vm-checklist-apt.md`, EFI + Secure Boot) passed
+  on every VM: Kubuntu 26.04 (2026-11-05), Debian 13 GNOME and KDE and Ubuntu 26.04 (2026-11-12),
+  with Ubuntu and Kubuntu 24.04.5 (section 7) (`docs(todo): Debian 13 and Ubuntu 26.04
+  VM-checked`).
 
 ## 6. Swap (zram)
 

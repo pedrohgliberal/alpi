@@ -278,7 +278,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   (Oracle VirtualBox on EL). Catalog keys (`alpi_catalog_keys` per distro): Fedora
   `fedora44`/`fedora45, fedora, rpm, all` (per release in `group_vars/os_Fedora_44`/`_45`, like Ubuntu's), EL `el10, el, rpm, all`, Debian 13 `debian13, debian, deb, all`, Ubuntu
   26.04 `ubuntu2604, ubuntu, deb, all`, Ubuntu 24.04 `ubuntu2404, ubuntu, deb, all` (all in the
-  matrix; first releases after the VM checklist). Ubuntu's keys are per release, in
+  matrix and VM-checked; released since v1.7.0). Ubuntu's keys are per release, in
   `group_vars/os_Ubuntu_24` and `os_Ubuntu_26` (env_setup's `os_<distro>_<major>` group; never the
   same key in `os_Ubuntu`); Oracle's VirtualBox suite is `distribution_release`. 24.04 lacks
   `fastfetch` (upstream release) and `flatseal` (Flatpak); `rpm` holds RPM names Fedora and EL share, `deb` those Debian and Ubuntu share,
