@@ -292,3 +292,9 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   `fedora44`/`el` skips of `libheif-freeworld` and `multimedia` from v1.5.0 removed, golden values
   and the `failures` strict case back (`fix(catalog): libheif-freeworld and @multimedia back on
   Fedora 44 and EL`).
+- **2026-11-12** GitHub token for the release queries: a full run exhausted GitHub's 60
+  unauthenticated API calls an hour, OpenLogi's query got 403 in the first converge and the
+  idempotence run installed it (`debian13-personal`, `ubuntu2604-personal`,
+  `ubuntu2404-personal`). `ALPI_GITHUB_TOKEN` (`tests/run.sh`: `gh auth token`) goes to
+  `api.github.com` only (`alpi_release_headers`); real runs can set it too
+  (`feat(upstream): optional GitHub token for the release queries`).

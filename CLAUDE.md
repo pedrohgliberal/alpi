@@ -257,7 +257,10 @@ parity; code comes in step by step, ported from them. Changes made there in the 
 - `roles/upstream` (after `packages`): catalog values `{upstream: <source id>}` (Roboto on EL,
   `tea` and `forgejo-cli` everywhere: PROPOSAL "Decisions (2026-10-28)"), sources in
   `group_vars/all/upstream.yml` (`upstream_sources`, each with a `type` handled by
-  `tasks/<type>.yml`; an undefined id stops the run in `resolve.yml`). Latest release on GitHub,
+  `tasks/<type>.yml`; an undefined id stops the run in `resolve.yml`). Release queries send
+  `alpi_release_headers` (`upstream_github_token`, from `ALPI_GITHUB_TOKEN`, as a Bearer header to
+  `https://api.github.com` only: 60 unauthenticated calls an hour per address, 5000 with a token;
+  `tests/run.sh` exports it from `gh auth token`, never printed). Latest release on GitHub,
   Gitea or Forgejo (same API shape), asset by regex (`alpi_github_release`: asset + GitHub's
   `sha256:` digest for get_url, or `sha256:<url>` of the asset matching `checksum_asset`).
   `github_fonts`: the members matching `files` flat into `dest`, replaced wholesale when the tag
@@ -335,7 +338,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   - Run with `tests/run.sh quick` while working (no real installs, a few minutes), `tests/run.sh
     full` before a commit, `tests/run.sh apt` for the scenarios with a Debian or Ubuntu instance,
     or `tests/run.sh <scenario>…`: pytest first, then the scenarios
-    `ALPI_JOBS` at a time (default 4, longest first; `ALPI_JOBS=1` for one at a time; a failure
+    `ALPI_JOBS` at a time (GitHub token from `ALPI_GITHUB_TOKEN` or `gh auth token`: without it a
+    full run exhausts GitHub's 60 calls an hour and an upstream install fails idempotence; default 4, longest first; `ALPI_JOBS=1` for one at a time; a failure
     does not stop the rest), logs in `~/.cache/alpi-molecule/logs/`, timed summary. Scenarios run
     side by side because they share nothing: their own container names, dnf volumes and network
     namespaces (the stand-in servers on 127.0.0.1 do not clash); keep it that way (no host

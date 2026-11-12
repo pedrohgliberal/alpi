@@ -23,6 +23,12 @@
 # (a leading 'v' dropped); packages_absent removes the package. x86_64 assets.
 upstream_version_dir: /var/lib/alpi/upstream
 
+# Optional GitHub token for the release queries (ALPI_GITHUB_TOKEN in the environment of
+# ansible-playbook): GitHub allows 60 unauthenticated API calls an hour per address, 5000 with a
+# token. Sent only to https://api.github.com (alpi_release_headers). A fine-grained token with no
+# permissions is enough: the repositories are public. tests/run.sh sets it from `gh auth token`.
+upstream_github_token: "{{ lookup('ansible.builtin.env', 'ALPI_GITHUB_TOKEN') }}"
+
 upstream_sources:
   # Ported from AAPI (EL10 has no Roboto package). Static hinted TTFs only, as distro packages
   # ship: adding the variable font too would show duplicate families in font pickers.

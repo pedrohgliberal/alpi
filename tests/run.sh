@@ -40,6 +40,19 @@ PYTHON=~/.local/share/pipx/venvs/molecule/bin/python
 # ansible-core 2.16 has dnf5 bugs (no install by URL, no libdnf5 in Fedora's bare image) that a
 # real Fedora run, with Fedora's own ansible-core, never meets.
 export PATH="$(dirname "$PYTHON"):$PATH"
+# GitHub allows 60 unauthenticated API calls an hour per address, and a full run makes more
+# (roles/upstream's release queries in every scenario that installs): with a token, 5000.
+# ALPI_GITHUB_TOKEN if set, else the GitHub CLI's (never printed); group_vars/all/upstream.yml
+# reads it and sends it to api.github.com only.
+if [ -z "${ALPI_GITHUB_TOKEN:-}" ] && command -v gh >/dev/null 2>&1; then
+    ALPI_GITHUB_TOKEN=$(gh auth token 2>/dev/null) || ALPI_GITHUB_TOKEN=
+fi
+if [ -n "${ALPI_GITHUB_TOKEN:-}" ]; then
+    export ALPI_GITHUB_TOKEN
+    echo "==> GitHub API: with a token"
+else
+    echo "==> GitHub API: no token (60 calls an hour; set ALPI_GITHUB_TOKEN or log in with gh)"
+fi
 LOGS=~/.cache/alpi-molecule/logs
 mkdir -p "$LOGS"
 

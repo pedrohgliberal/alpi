@@ -4,6 +4,7 @@ import base64
 import binascii
 import json
 import re
+from urllib.parse import urlsplit
 
 # Raw names bypass the catalog: "pkg:<native name>", "flatpak:<app id>" or "pipx:<PyPI spec>".
 RAW_PREFIXES = {"pkg": "native", "flatpak": "flatpak", "pipx": "pipx"}
@@ -619,6 +620,21 @@ def alpi_upstream_package_current(query, tag):
     return want in (version, version.rsplit("-", 1)[0])
 
 
+def alpi_release_headers(url, token=""):
+    """Headers for a release API query (roles/upstream, roles/packages' check).
+
+    GitHub's JSON media type always; the token (upstream_github_token, from ALPI_GITHUB_TOKEN)
+    as a Bearer header only when the URL is GitHub's API over https: unauthenticated calls are
+    limited to 60 an hour per address, and the token must never reach another forge.
+    """
+    headers = {"Accept": "application/vnd.github+json"}
+    token = str(token or "").strip()
+    parts = urlsplit(str(url or ""))
+    if token and parts.scheme == "https" and (parts.hostname or "").lower() == "api.github.com":
+        headers["Authorization"] = "Bearer " + token
+    return headers
+
+
 class FilterModule(object):
     def filters(self):
         return {
@@ -644,4 +660,5 @@ class FilterModule(object):
             "alpi_github_release": alpi_github_release,
             "alpi_upstream_missing": alpi_upstream_missing,
             "alpi_upstream_package_current": alpi_upstream_package_current,
+            "alpi_release_headers": alpi_release_headers,
         }

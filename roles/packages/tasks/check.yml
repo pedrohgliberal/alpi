@@ -43,8 +43,7 @@
 - name: Packages | Look up upstream releases
   ansible.builtin.uri:
     url: "{{ upstream_sources[item].release_api }}"
-    headers:
-      Accept: application/vnd.github+json
+    headers: "{{ upstream_sources[item].release_api | alpi_release_headers(upstream_github_token) }}"
     return_content: true
     status_code: [200, 404]
   loop: "{{ (alpi_pkgs.upstream + alpi_pkgs_extra.upstream) | unique }}"

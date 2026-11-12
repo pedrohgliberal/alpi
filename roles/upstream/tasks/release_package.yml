@@ -13,8 +13,7 @@
     - name: Upstream | {{ upstream_id }}, latest release
       ansible.builtin.uri:
         url: "{{ upstream.release_api }}"
-        headers:
-          Accept: application/vnd.github+json
+        headers: "{{ upstream.release_api | alpi_release_headers(upstream_github_token) }}"
         return_content: true
       register: _up_api
       failed_when: false

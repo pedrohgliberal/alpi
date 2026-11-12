@@ -209,6 +209,7 @@ class TestFeatures:
             "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_repos", "alpi_feature_ids",
             "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name", "alpi_pipx_plan",
             "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing", "alpi_upstream_package_current",
+            "alpi_release_headers",
         }
 
 
@@ -854,3 +855,30 @@ def test_pipx_plan_names_compare_as_pypi_does():
     listing = {"venvs": {"notebooklm_py": {"metadata": {"injected_packages": {"Playwright": {}}}}}}
     assert alpi.alpi_pipx_plan(listing, ["notebooklm-py[browser]"], {"NotebookLM.py": ["playwright"]},
                                ["NOTEBOOKLM-PY"]) == {"install": [], "inject": [], "uninstall": ["NOTEBOOKLM-PY"]}
+
+
+# --- alpi_release_headers ----------------------------------------------------------------------
+GH_API = "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest"
+
+
+def test_release_headers_send_the_token_to_github():
+    assert alpi.alpi_release_headers(GH_API, " t0k ") == {
+        "Accept": "application/vnd.github+json", "Authorization": "Bearer t0k"}
+
+
+@pytest.mark.parametrize("token", ["", None, "  "])
+def test_release_headers_without_a_token(token):
+    assert alpi.alpi_release_headers(GH_API, token) == {"Accept": "application/vnd.github+json"}
+
+
+@pytest.mark.parametrize("url", [
+    "https://gitea.com/api/v1/repos/gitea/tea/releases/latest",          # another forge
+    "https://codeberg.org/api/v1/repos/forgejo-contrib/forgejo-cli/releases/latest",
+    "http://127.0.0.1:8766/repos/roboto/releases/latest",               # the tests' stand-in
+    "http://api.github.com/repos/a/b/releases/latest",                  # not https
+    "https://api.github.com.evil.example/repos/a/b/releases/latest",    # look-alike host
+    "https://evil.example/?u=https://api.github.com/",
+    "",
+])
+def test_release_headers_keep_the_token_from_other_hosts(url):
+    assert "Authorization" not in alpi.alpi_release_headers(url, "t0k")
