@@ -5,10 +5,12 @@
 # every point release reports its LTS's version, 24.04.5 too). Checked by the alpi_support filter. There is
 # no fallback by os_family: Rocky, CentOS Stream or Ubuntu are not "close enough" to a supported
 # distro.
+# Fedora from 44 (2026-11-12): each release needs its own catalog keys (group_vars/os_Fedora_NN);
+# 41 and 42 are past their end of life, 43 near it.
 # Debian 13 and Ubuntu 26.04 are listed for the apt work; their first releases wait for the VM
 # checklist (PROPOSAL.md, decision 6; TODO.md, Phase 5). Ubuntu 24.04: TODO.md, Phase 6.
 alpi_supported:
-  Fedora: {min: 41, max: 45}
+  Fedora: {min: 44, max: 45}
   AlmaLinux: {min: 10, max: 10}
   Debian: {min: 13, max: 13}
   Ubuntu: {version: ["24.04", "26.04"]}

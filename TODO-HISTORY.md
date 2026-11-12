@@ -254,6 +254,14 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   name on a Fedora 45 instance against its golden values, `fedora45-personal` installs with
   `fedora44-personal`'s settings and verify, `unsupported` refuses Fedora 46
   (`feat(fedora): Fedora 45 support`).
+- **2026-11-12** Fedora 45 checked on real hardware instead of a VM: a fresh install on noir
+  ran ALPI with success and counts as `tests/vm-checklist.md`'s Fedora 45 VM (decided
+  2026-11-12). Fedora's support starts at 44: since v1.5.0 every Fedora release needs its own
+  catalog keys (`group_vars/os_Fedora_NN`), which 41-43 never got, so they passed the support
+  check and then failed to resolve; 41 and 42 are past their end of life, 43 near it. A unit test
+  checks that every supported release has catalog keys, `unsupported` refuses Fedora 43
+  (`fix(support): Fedora from 44; Fedora 45 checked on noir`).
+
 ## Maintenance
 
 - **2026-10-23** VirtualBox vs KVM on kernel 6.12+: kvm keeps VMX on from load

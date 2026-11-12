@@ -449,6 +449,19 @@ def test_fedora_keys_per_release():
     assert pick.load_data(ROOT, "Fedora", "45")["alpi_catalog_keys"] == ["fedora45", "fedora", "rpm", "all"]
 
 
+def test_every_supported_release_has_catalog_keys():
+    # The support matrix must not accept a release the catalog cannot resolve (Fedora 41-43 had
+    # no keys after the per-release split of v1.5.0)
+    support = pick.load_yaml(ROOT / "group_vars" / "all" / "support.yml")["alpi_supported"]
+    releases = [(distro, str(major)) for distro, entry in support.items() if "min" in entry
+                for major in range(entry["min"], entry["max"] + 1)]
+    releases += [(distro, str(v).split(".")[0]) for distro, entry in support.items() if "version" in entry
+                 for v in (entry["version"] if isinstance(entry["version"], list) else [entry["version"]])]
+    assert ("Fedora", "44") in releases and ("Ubuntu", "24") in releases
+    missing = [f"{d} {m}" for d, m in releases if "alpi_catalog_keys" not in pick.load_data(ROOT, d, m)]
+    assert missing == []
+
+
 def test_every_distro_has_a_family():
     assert set(pick.DISTROS.values()) <= set(pick.FAMILIES)
 

@@ -393,7 +393,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `ubuntu2604` (as `debian13`, with its playbooks: each instance's sources file, components and
     candidates in its host_vars), `ubuntu2404` and `ubuntu2404-personal` (the same on Ubuntu
     24.04, KWin pinned at Plasma 5's 5.27.11; the personal one resolves with 24.04's ansible-core
-    2.16), `unsupported` (Debian 12, Fedora 46: the `fedora:46` tag is Rawhide until it branches, Ubuntu 26.10), `upstream` (`roles/upstream` on
+    2.16), `unsupported` (Debian 12, Fedora 43 (below 44: each Fedora release needs its own catalog keys), Fedora 46: the `fedora:46` tag is Rawhide until it branches, Ubuntu 26.10), `upstream` (`roles/upstream` on
     AlmaLinux 10 against stand-in GitHub, Gitea and Forgejo releases served by `http.server` on
     127.0.0.1:8766: Roboto, tea (.xz + .sha256) and fj (.tar.gz) install v1, `side_effect.yml`
     publishes Roboto and tea v2, deletes fj and runs again (Molecule's side_effect step, added to

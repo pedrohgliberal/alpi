@@ -64,9 +64,8 @@ In the support matrix and the container tests since 2026-11-07 (`TODO-HISTORY.md
 `fedora:45` on 2026-11-07: dnf5 5.4.7, KWin 6.8.2 (the cedilla workaround stays off), RPM Fusion
 and the ASUS COPR publish 45.
 
-- [ ] **VM checklist:** `tests/vm-checklist.md`'s Fedora KDE VM on Fedora 45 (EFI + Secure Boot):
-      akmods key and signed `akmod-VirtualBox`/NVIDIA builds on 45's kernel, `dracut`, the reboot
-      gate, Konsole and the cedilla in a Plasma 6.8 session; then a release.
+- [ ] **Release:** after `tests/run.sh full`, the next minor release says Fedora 45 is checked
+      on real hardware (noir, 2026-11-12) and that Fedora starts at 44.
 
 ## Maintenance
 
