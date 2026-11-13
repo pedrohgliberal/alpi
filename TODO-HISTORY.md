@@ -316,3 +316,8 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   `--ozone-platform=x11`, and Ubuntu's Flatpak (`org.chromium.Chromium`) with the cedilla's X11
   overrides; `user` checks the entry copy, the Ubuntu golden values the override
   (`feat(desktop): Chromium on XWayland with the cedilla workaround`).
+- **2026-11-13** `v1.8.0` tagged on `4a464a6`: Google Chrome from Google's package, and Chromium and
+  Chrome on XWayland with the cedilla workaround. The full run on `9461f81` was green apart from
+  `failures`, whose upstream cases lacked the new default (test data only, fixed in `4a464a6`).
+  `failures` passed when rerun alone on `4a464a6`; the user chose to tag without a second full run
+  (`docs(todo): v1.8.0 tagged`).
