@@ -68,11 +68,11 @@
         upstream_sources: {}
         # Each id on its own: resolve.yml lists them through difference, which keeps no order
         expect: ["Catalog bug, upstream sources with no definition", "roboto", "tea", "forgejo-cli",
-                 "openlogi"]
+                 "openlogi", "google-chrome"]
       # The real releases, Roboto's (GitHub) asked for an asset it does not have, tea's (Gitea)
       # for a checksum file it does not have, OpenLogi's (GitHub, release_package) for its
-      # .rpm under a suffix it does not have; fj's (Forgejo) as in
-      # group_vars/all/upstream.yml
+      # .rpm under a suffix it does not have, Google Chrome's (vendor_package) at a URL that answers
+      # 404; fj's (Forgejo) as in group_vars/all/upstream.yml
       - name: upstream release without the asset
         only: AlmaLinux
         packages_role: true
@@ -101,7 +101,14 @@
             # Literal: the cases are templated before group_by loads upstream_package_format
             asset: '^openlogi-v[0-9.]+-linux-amd64[.]rpm[.]alpi-nope$'
             package: openlogi
-        expect: ["Upstream sources (no such release or asset): tea, roboto, openlogi."]
+          # vendor_package: its download URL answers 404 (looked up with HEAD)
+          google-chrome:
+            type: vendor_package
+            url:
+              rpm: https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm.alpi-nope
+              deb: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb.alpi-nope
+            package: google-chrome-stable
+        expect: ["Upstream sources (no such release or asset): tea, roboto, openlogi, google-chrome."]
       - name: names not found
         # Like a real run, repos first: every real name resolves, only the bad ones are reported
         packages_add: ["pkg:nope-xyz", "flatpak:org.nope.App", "pipx:alpi-nope-not-on-pypi-xyz"]
