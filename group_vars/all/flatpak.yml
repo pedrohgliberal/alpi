@@ -55,6 +55,8 @@ cedilla_flatpak_x11_args:
 cedilla_flatpak_overrides:
   com.slack.Slack: "{{ cedilla_flatpak_x11_args }}"
   com.spotify.Client: "{{ cedilla_flatpak_x11_args }}"
+  # Ubuntu's Chromium (a Flatpak there): without the Wayland socket it starts on X11 by itself
+  org.chromium.Chromium: "{{ cedilla_flatpak_x11_args }}"
   # Replaces the KDE layer's Wayland flags; its wrapper picks --ozone-platform=x11 when only
   # DISPLAY is set
   com.bitwarden.desktop: "{{ cedilla_flatpak_x11_args + ['--unset-env=GTK_IM_MODULE', '--env=XDG_CURRENT_DESKTOP=KDE', '--env=GTK_USE_PORTAL=1'] }}"

@@ -139,7 +139,8 @@ ansible-playbook site.yml -K 2>&1 | tee run2.log
       0.95. Debian GNOME: gnome-terminal, untouched (no Ptyxis errors in the run). KDE VMs:
       Konsole with the kali-like-alt profile. 📸 each.
 - [ ] **Cedilla** (after logout/login): `'` + `c` → `ç` in a text editor and in Brave; the KDE VMs
-      (KWin < 6.7): Brave, Google Chrome and VS Code started from the menu run on XWayland
+      (KWin < 6.7): Brave, Google Chrome, Chromium (Ubuntu: its Flatpak) and VS Code started from
+      the menu run on XWayland
       (`xprop` finds their windows). On a pt_BR install: `cat ~/.XCompose | head -3` is the
       pt_BR Compose file (`/etc/default/locale`).
 - [ ] **AI tools:** `claude --version`; `ls ~/.local/bin/agy`; the Antigravity IDE starts from the

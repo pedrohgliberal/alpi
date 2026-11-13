@@ -36,6 +36,6 @@ _golden:
     intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [brave-browser, gh-cli, code, virtualbox]
   # KDE forced with KWin 6.6.6 (Kubuntu 26.04's): the cedilla layer is on
-  flatpak_overrides: [com.rtosta.zapzap, com.bitwarden.desktop, us.zoom.Zoom, com.slack.Slack, com.spotify.Client]
+  flatpak_overrides: [com.rtosta.zapzap, com.bitwarden.desktop, us.zoom.Zoom, com.slack.Slack, com.spotify.Client, org.chromium.Chromium]
   cedilla_xwayland: true
   groups: [family_Debian, os_Ubuntu, os_Ubuntu_26]

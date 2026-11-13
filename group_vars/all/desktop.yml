@@ -47,7 +47,9 @@ cedilla_ozone_flag: --ozone-platform=x11
 # wins) with the flag on every Exec line, rebuilt on every run so updates reach them; a copy of
 # the user's own only gets the flag. VS Code's argv.json does not accept ozone-platform, hence its
 # entries here too. Antigravity's entry (roles/ai_tools) and the antigravity-ide and code aliases
-# (group_vars/all/zsh.yml) get the flag directly. The Flatpak apps: group_vars/all/flatpak.yml.
+# (group_vars/all/zsh.yml) get the flag directly. The Flatpak apps (Ubuntu's Chromium among
+# them): group_vars/all/flatpak.yml. Chromium's id: chromium-browser (Fedora, EPEL), chromium
+# (Debian).
 cedilla_x11_desktop_entries:
   - brave-browser.desktop
   - brave-origin.desktop
@@ -55,6 +57,8 @@ cedilla_x11_desktop_entries:
   - com.brave.Origin.desktop
   - google-chrome.desktop
   - com.google.Chrome.desktop
+  - chromium-browser.desktop
+  - chromium.desktop
   - com.microsoft.VSCode.desktop
   - com.microsoft.VSCode.UrlHandler.desktop
 cedilla_x11_desktop_marker: "ALPI: copy of the system entry on XWayland for the cedilla (cedilla_xwayland), rebuilt on every run"

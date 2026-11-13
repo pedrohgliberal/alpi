@@ -27,7 +27,7 @@
 # on, which also gets the nvidia-run alias) and AFPI's on KDE (NVIDIA vetoed); on Debian and Ubuntu
 # (NVIDIA on) it becomes ALPI's copy of steam-installer's launcher with the GPU keys; on EL a user's
 # own launcher stays.
-# Cedilla on XWayland (KDE, stand-in kwin package): with KWin 6.6.4 the Brave, Google Chrome and VS Code menu
+# Cedilla on XWayland (KDE, stand-in kwin package): with KWin 6.6.4 the Brave, Google Chrome, Chromium and VS Code menu
 # entries are copied with --ozone-platform=x11 (AAPI's copy taken over, the user's own only
 # flagged), the Antigravity entry and aliases get it, and the cedilla's Flatpak overrides apply
 # (roles/packages' override step, run alone; Bitwarden's KDE Wayland flags replaced);

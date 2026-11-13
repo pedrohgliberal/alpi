@@ -311,3 +311,8 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   NVIDIA driver, TODO section 9). `upstream` tests a stand-in at a fixed URL (installed, not
   updated from the URL, kept offline, removed), `user` the menu entry copy, `el10-work` and
   `debian13-personal` the real packages (`feat(packages): Google Chrome from Google's package`).
+- **2026-11-12** Chromium on XWayland too with the cedilla workaround (KDE, KWin < 6.7): its menu
+  entries (`chromium-browser` on Fedora and EPEL, `chromium` on Debian) copied with
+  `--ozone-platform=x11`, and Ubuntu's Flatpak (`org.chromium.Chromium`) with the cedilla's X11
+  overrides; `user` checks the entry copy, the Ubuntu golden values the override
+  (`feat(desktop): Chromium on XWayland with the cedilla workaround`).

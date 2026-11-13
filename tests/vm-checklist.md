@@ -131,7 +131,7 @@ ansible-playbook site.yml -K 2>&1 | tee run2.log
 - [ ] **Cedilla** (after logout/login): `'` + `c` → `ç` in a text editor and in Brave.
 - [ ] **Cedilla workaround off (Fedora 45, KWin 6.8):** `rpm -q kwin` → 6.8 or newer; the run
       printed no cedilla login notice; `grep -l ozone-platform=x11 ~/.local/share/applications/*.desktop`
-      → nothing (Brave, Chrome and VS Code run on native Wayland); `'` + `c` → `ç` in Brave **and** VS Code
+      → nothing (Brave, Chrome, Chromium and VS Code run on native Wayland); `'` + `c` → `ç` in Brave **and** VS Code
       all the same. 📸 VS Code with the `ç`.
 - [ ] **AI tools:** `claude --version`; `ls ~/.local/bin/agy`; the Antigravity IDE in the menu; `pipx list`
       → markitdown, notebooklm-py, pdf2docx.

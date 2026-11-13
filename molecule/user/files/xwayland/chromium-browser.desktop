@@ -1,0 +1,17 @@
+[Desktop Entry]
+Version=1.0
+Name=Chromium
+Exec=/usr/bin/chromium-browser %U
+Terminal=false
+Icon=chromium-browser
+Type=Application
+Categories=Network;WebBrowser;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=/usr/bin/chromium-browser
+
+[Desktop Action new-private-window]
+Name=New Incognito Window
+Exec=/usr/bin/chromium-browser --incognito

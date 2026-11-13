@@ -114,7 +114,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   changes the decision it sets `alpi_cedilla_flipped` and asks for a new login (a new KWin needs
   a login, not a reboot). On: the
   `cedilla_flatpak_overrides` layer replaces `flatpak_overrides_kde` app by app; Brave/Google
-  Chrome/VS Code menu entries copied with `--ozone-platform=x11` (`roles/desktop/tasks/xwayland.yml`, plan from
+  Chrome/Chromium/VS Code menu entries copied with `--ozone-platform=x11` (`roles/desktop/tasks/xwayland.yml`, plan from
   `alpi_xwayland_entries`: ALPI's copies carry a marker and are rebuilt on every run, AAPI's are
   recognized as the system entry plus the flag, a user's own copy only gets the flag); the flag
   in the Antigravity entry and the `antigravity-ide`/`code` aliases. Off: everything undone, and
@@ -456,7 +456,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `/etc/default/locale`, apt's `full-update` (zsh must parse what it expands to), the AI tools'
     packages under Debian names; Ubuntu 26.04 and 24.04 containers without a desktop, where the Antigravity
     IDE gets its AppArmor profile (parsed by each release's own `apparmor_parser`, the container's kernel has no AppArmor). Cedilla on XWayland on KDE: stand-in `kwin` RPMs (rpmbuild) 6.6.4
-    installed, stand-in Brave/Google Chrome/VS Code system entries (`files/xwayland/`, on every container),
+    installed, stand-in Brave/Google Chrome/Chromium/VS Code system entries (`files/xwayland/`, on every container),
     AAPI's leftovers, and `roles/packages/tasks/flatpak_overrides.yml` run alone (flatpak only
     there); `side_effect.yml` keeps the on-state in `/root/alpi-xwayland-on/` and publishes 6.7.5,
     which converge's stand-in for `roles/update` installs before `tasks/cedilla.yml` runs again:
