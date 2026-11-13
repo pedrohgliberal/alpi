@@ -21,6 +21,12 @@
 # digest and installed with dnf or apt, so the package manager owns its files and runs its
 # scripts. Installed when 'package' is not installed or its version is not the release tag's
 # (a leading 'v' dropped); packages_absent removes the package. x86_64 assets.
+#
+# vendor_package: the vendor's .rpm or .deb from a fixed URL ('url', per upstream_package_format),
+# for a vendor whose package sets up its own repository: installed only when 'package' is not
+# installed, then updated from that repository with the rest of the system. On RPM, 'key' (with
+# 'key_fingerprint') is imported first and the package's signature must verify against it.
+# packages_absent removes the package (the vendor's repository file stays).
 upstream_version_dir: /var/lib/alpi/upstream
 
 # Optional GitHub token for the release queries (ALPI_GITHUB_TOKEN in the environment of
@@ -76,3 +82,16 @@ upstream_sources:
     release_api: "https://api.github.com/repos/AprilNEA/OpenLogi/releases/latest"
     asset: '^openlogi-v[0-9.]+-linux-amd64[.]{{ upstream_package_format }}$'
     package: openlogi
+  # Google Chrome (2026-11-12: 157). Its package writes /etc/yum.repos.d/google-chrome.repo or
+  # /etc/apt/sources.list.d/google-chrome.sources (and Google's keyring) on every install and from
+  # a daily cron job on Debian, so the repository is Google's, never ALPI's (a copy under ALPI's
+  # format was rewritten by the install, checked on Fedora 44, EL10, Debian 13 and Ubuntu 24.04).
+  # The RPM is signed with Google's key (linux_signing_key.pub verifies it); the .deb is not.
+  google-chrome:
+    type: vendor_package
+    url:
+      rpm: https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+      deb: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    key: https://dl.google.com/linux/linux_signing_key.pub
+    key_fingerprint: EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796
+    package: google-chrome-stable

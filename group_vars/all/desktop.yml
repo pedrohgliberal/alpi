@@ -53,6 +53,8 @@ cedilla_x11_desktop_entries:
   - brave-origin.desktop
   - com.brave.Browser.desktop
   - com.brave.Origin.desktop
+  - google-chrome.desktop
+  - com.google.Chrome.desktop
   - com.microsoft.VSCode.desktop
   - com.microsoft.VSCode.UrlHandler.desktop
 cedilla_x11_desktop_marker: "ALPI: copy of the system entry on XWayland for the cedilla (cedilla_xwayland), rebuilt on every run"

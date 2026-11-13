@@ -60,6 +60,7 @@ alpi_catalog:
   # --- Desktop applications ---
   argyllcms:     {fedora: argyllcms, el: ~, deb: argyll}
   brave:         {all: [brave-browser, brave-origin], repo: brave-browser}
+  google-chrome: {all: {upstream: google-chrome}}   # Google's package sets up its own repository
   chromium:      {all: chromium, ubuntu: {flatpak: org.chromium.Chromium}}   # Ubuntu's is a snap transitional (decision 5)
   discord:       {rpm: discord, deb: {flatpak: com.discordapp.Discord}}                   # RPM Fusion nonfree
   drawy:         {fedora: drawy, el: {flatpak: org.kde.drawy}, deb: {flatpak: org.kde.drawy}}

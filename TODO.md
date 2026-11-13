@@ -75,6 +75,27 @@ posttrans that rebuilds the initramfs for the GSP firmware.
       built). Pre-Turing GPUs (no open-module support): decide whether to skip with a message.
 - [ ] **Real hardware:** the AlmaLinux notebook (MX450, EFI + Secure Boot): nouveau gone,
       `nvidia-smi` lists the GPU, the module loads with Secure Boot on; then a release.
+- [ ] **Chrome crashes with the driver:** reported 2026-11-12 on that notebook, after the manual
+      install (`almalinux-release-nvidia-driver`, `nvidia-open-kmod`, `nvidia-driver`,
+      `nvidia-driver-cuda`) on top of an ALPI run: the driver worked (`nvidia-smi` ran) and Google
+      Chrome, fine before, started to crash (KDE; Chrome installed by hand after ALPI, so on
+      native Wayland). ALPI now installs Chrome and, on a KWin older than 6.7 (EL10's), starts it
+      on XWayland with the cedilla workaround (`feat(packages): Google Chrome from Google's
+      package`): check on the notebook whether that alone stops the crashes. Otherwise find the
+      cause there (`chrome://gpu`, `coredumpctl`, the journal) and whether disabling the hardware
+      acceleration or keeping Chrome off the NVIDIA GPU (Vulkan/EGL vendor) avoids it; then
+      decide what ALPI sets or documents. Check Brave and the Electron apps too.
+- [ ] **Removal:** on the same notebook, `dnf remove` of the driver also took packages the
+      desktop needed (dependents, and unused dependencies through `clean_requirements_on_remove`)
+      and the next boot no longer reached the login; `dnf history undo` failed from a live USB's
+      chroot (it wants the old versions). A second notebook of the same model also lost the login
+      *(check: the same sequence?)*. Document a removal that leaves the desktop working: remove
+      only the NVIDIA packages (`dnf remove --noautoremove`, or `rpm -e` of the exact list), drop
+      what the install added to the kernel command line (`grubby`: nouveau blacklist,
+      `nvidia-drm` options) and `/etc/modprobe.d`, `dracut -f --regenerate-all`; and the recovery
+      (chroot with `/dev`, `/proc`, `/sys`, `/run` and `resolv.conf`; reinstall the removed
+      non-NVIDIA packages by name from `dnf history info`; `dnf group upgrade` of the
+      environment). Consider an ALPI way back (a feature turned off removes what it added).
 - [ ] **Pre-Turing GPUs on Ubuntu (24.04, 26.04):** the pinned `nvidia-driver-615-open` with
       Canonical's `linux-modules-nvidia-615-open-generic` are open modules, which drive only
       Turing and newer (GTX 16xx, RTX 20xx, MX450 and later); a Maxwell, Pascal or Volta GPU

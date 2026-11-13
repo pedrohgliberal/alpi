@@ -269,8 +269,8 @@
             Exec=/opt/steam/steam
 
 # The cedilla on XWayland (KDE): a stand-in kwin package, 6.6.4 installed (the workaround applies)
-# and 6.7.5 built for side_effect.yml (it no longer does); the system menu entries of Brave and VS
-# Code (a trimmed copy of each); what AAPI and the user left behind: an AAPI copy of VS Code's URL
+# and 6.7.5 built for side_effect.yml (it no longer does); the system menu entries of Brave, Google
+# Chrome and VS Code (a trimmed copy of each); what AAPI and the user left behind: an AAPI copy of VS Code's URL
 # handler (system entry plus the flag, no marker), the user's own VS Code entry, and Slack's
 # override from AAPI plus a flag set by hand; Bitwarden's Wayland override from the KDE layer.
 - name: Prepare | Cedilla on XWayland
@@ -281,7 +281,7 @@
     _overrides: /home/alpi/.local/share/flatpak/overrides
   tasks:
     # Everywhere: GNOME and EL must leave them alone
-    - name: Prepare | System menu entries of Brave and VS Code
+    - name: Prepare | System menu entries of Brave, Google Chrome and VS Code
       ansible.builtin.copy:
         src: files/xwayland/
         dest: /usr/share/applications/

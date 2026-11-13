@@ -24,3 +24,10 @@ upstream_sources:
     release_api: http://127.0.0.1:9/repos/AprilNEA/OpenLogi/releases/latest
     asset: '^openlogi-v[0-9.]+-linux-amd64[.]{{ upstream_package_format }}$'
     package: openlogi
+  # Unsigned stand-in (no key): the signature check is the real Chrome's, in the personal scenarios
+  google-chrome:
+    type: vendor_package
+    url:
+      rpm: http://127.0.0.1:9/dl/chrome/google-chrome-stable_current_x86_64.rpm
+      deb: http://127.0.0.1:9/dl/chrome/google-chrome-stable_current_amd64.deb
+    package: google-chrome-stable

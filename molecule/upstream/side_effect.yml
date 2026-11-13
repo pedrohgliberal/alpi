@@ -1,7 +1,8 @@
 ---
 # New releases are published after converge + idempotence (Roboto, tea and openlogi), and fj is
 # deleted while its release stays v1: the next run must replace Roboto and tea, upgrade openlogi
-# and put fj v1 back
+# and put fj v1 back. google-chrome-stable 2.0.0 replaces 1.0.0 at its fixed URL: the next run must
+# leave the installed 1.0.0 alone (Google's repository updates it, not ALPI)
 - name: Side effect | Publish v2, delete fj
   hosts: alpi-up-install
   gather_facts: false
@@ -16,6 +17,7 @@
         - { src: release-v2.json, dest: repos/googlefonts/roboto-3-classic/releases/latest }
         - { src: tea-release-v2.json, dest: api/v1/repos/gitea/tea/releases/latest }
         - { src: openlogi-release-v2.0.0.json, dest: repos/AprilNEA/OpenLogi/releases/latest }
+        - { src: chrome-2.0.0.rpm, dest: dl/chrome/google-chrome-stable_current_x86_64.rpm }
 
     - name: Side effect | fj gone
       ansible.builtin.file:

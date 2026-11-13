@@ -462,6 +462,27 @@ def test_every_supported_release_has_catalog_keys():
     assert missing == []
 
 
+# What roles/upstream/tasks/<type>.yml reads from each source
+UPSTREAM_FIELDS = {
+    "github_fonts": {"release_api", "asset", "files", "dest"},
+    "release_binary": {"release_api", "asset", "dest"},
+    "release_package": {"release_api", "asset", "package"},
+    "vendor_package": {"url", "package"},
+}
+
+
+def test_every_upstream_source_has_its_type_fields():
+    sources = pick.load_yaml(ROOT / "group_vars" / "all" / "upstream.yml")["upstream_sources"]
+    for sid, src in sources.items():
+        assert (ROOT / "roles" / "upstream" / "tasks" / f"{src['type']}.yml").is_file(), sid
+        assert UPSTREAM_FIELDS[src["type"]] <= set(src), sid
+        if src["type"] == "vendor_package":
+            # Both package formats; a key only with its fingerprint
+            assert set(src["url"]) == {"rpm", "deb"}, sid
+            assert all(u.startswith("https://") for u in src["url"].values()), sid
+            assert ("key" in src) == ("key_fingerprint" in src), sid
+
+
 def test_every_distro_has_a_family():
     assert set(pick.DISTROS.values()) <= set(pick.FAMILIES)
 

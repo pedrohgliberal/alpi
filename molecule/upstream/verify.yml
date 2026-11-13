@@ -148,3 +148,35 @@
           - (_ol_run.stdout if _ol_run.rc == 0 else '') == _ol_expected[inventory_hostname].run
         fail_msg: "{{ _ol_query.stdout }} / {{ _ol_run.stdout }} {{ _ol_run.stderr | default('') }}"
         quiet: true
+
+- name: Verify | roles/upstream (google-chrome, vendor_package)
+  hosts: all
+  gather_facts: false
+  vars:
+    _gc_expected:
+      alpi-up-install: {query: installed 1.0.0, run: google-chrome-stable 1.0.0}
+      alpi-up-offline: {query: installed 0.1.0, run: google-chrome-stable 0.1.0}
+      alpi-up-absent: {query: "", run: ""}
+  tasks:
+    - name: Verify | Installed google-chrome-stable package
+      ansible.builtin.command:
+        argv: [rpm, -q, --qf, "installed %{VERSION}", google-chrome-stable]
+      register: _gc_query
+      changed_when: false
+      failed_when: false
+
+    - name: Verify | Run the installed stand-in
+      ansible.builtin.command: /usr/bin/google-chrome-stable
+      register: _gc_run
+      changed_when: false
+      failed_when: false
+
+    # install: 1.0.0 from the fixed URL, kept when 2.0.0 replaced it there; offline: 0.1.0 kept,
+    # nothing downloaded; absent: removed
+    - name: Verify | The expected package
+      ansible.builtin.assert:
+        that:
+          - (_gc_query.stdout if _gc_query.rc == 0 else '') == _gc_expected[inventory_hostname].query
+          - (_gc_run.stdout if _gc_run.rc == 0 else '') == _gc_expected[inventory_hostname].run
+        fail_msg: "{{ _gc_query.stdout }} / {{ _gc_run.stdout }} {{ _gc_run.stderr | default('') }}"
+        quiet: true

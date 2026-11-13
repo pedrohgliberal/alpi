@@ -12,7 +12,7 @@ picker_groups:
   - title: Security
     ids: [clamav, chkrootkit, lynis, rkhunter, unhide]
   - title: Internet & chat
-    ids: [brave, chromium, discord, telegram, slack, zapzap, zoom]
+    ids: [brave, chromium, google-chrome, discord, telegram, slack, zapzap, zoom]
   - title: Office & productivity
     ids: [libreoffice, zotero, bitwarden, markitdown, pdf2docx, notebooklm-py]
   - title: Graphics & media
@@ -60,6 +60,7 @@ picker_descriptions:
   # Internet & chat
   brave: Brave browser
   chromium: Chromium browser
+  google-chrome: Google Chrome browser
   discord: Discord chat
   telegram: Telegram messaging
   slack: Slack chat

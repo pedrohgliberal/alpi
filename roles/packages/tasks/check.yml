@@ -39,22 +39,40 @@
 
 # Upstream sources (roles/upstream): GitHub must name a release with a matching asset. A 404 or a
 # release without one is an error (the source moved); no answer (offline, rate limit) only a
-# warning, as the role then keeps what is installed.
+# warning, as the role then keeps what is installed. A vendor_package source has no release: its
+# download URL must answer (a 404 is an error), looked up with HEAD (no download).
+- name: Packages | Upstream sources to check
+  ansible.builtin.set_fact:
+    _upstream_ids: "{{ (alpi_pkgs.upstream + alpi_pkgs_extra.upstream) | unique }}"
+    _vendor_ids: >-
+      {{ upstream_sources | dict2items | selectattr('value.type', 'eq', 'vendor_package')
+         | map(attribute='key') | list }}
+
 - name: Packages | Look up upstream releases
   ansible.builtin.uri:
     url: "{{ upstream_sources[item].release_api }}"
     headers: "{{ upstream_sources[item].release_api | alpi_release_headers(upstream_github_token) }}"
     return_content: true
     status_code: [200, 404]
-  loop: "{{ (alpi_pkgs.upstream + alpi_pkgs_extra.upstream) | unique }}"
+  loop: "{{ _upstream_ids | reject('in', _vendor_ids) | list }}"
   register: _upstream_info
   failed_when: false
   check_mode: false
 
-- name: Packages | Upstream releases that could not be checked
+- name: Packages | Look up vendor packages
+  ansible.builtin.uri:
+    url: "{{ upstream_sources[item].url[upstream_package_format] }}"
+    method: HEAD
+    status_code: [200, 404]
+  loop: "{{ _upstream_ids | select('in', _vendor_ids) | list }}"
+  register: _vendor_info
+  failed_when: false
+  check_mode: false
+
+- name: Packages | Upstream sources that could not be checked
   ansible.builtin.debug:
-    msg: "Could not reach {{ upstream_sources[item.item].release_api }} (status {{ item.status | default('n/a') }}): {{ item.item }} not checked."
-  loop: "{{ _upstream_info.results | default([]) | rejectattr('status', 'in', [200, 404]) | list }}"
+    msg: "Could not reach {{ upstream_sources[item.item].release_api | default(item.url | default('n/a')) }} (status {{ item.status | default('n/a') }}): {{ item.item }} not checked."
+  loop: "{{ (_upstream_info.results | default([]) + _vendor_info.results | default([])) | rejectattr('status', 'in', [200, 404]) | list }}"
   loop_control:
     label: "{{ item.item }}"
 
@@ -73,7 +91,10 @@
   vars:
     _missing_flatpak: "{{ _flatpak_info.results | default([]) | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
     _missing_pipx: "{{ _pypi_info.results | default([]) | rejectattr('status', 'equalto', 200) | map(attribute='item') | list }}"
-    _missing_upstream: "{{ _upstream_info.results | default([]) | alpi_upstream_missing(upstream_sources | default({})) }}"
+    _missing_upstream: >-
+      {{ _upstream_info.results | default([]) | alpi_upstream_missing(upstream_sources | default({}))
+         + _vendor_info.results | default([]) | selectattr('status', 'defined') | selectattr('status', 'eq', 404)
+           | map(attribute='item') | list }}
 
 - name: Packages | Fail on unresolvable dependencies
   ansible.builtin.assert:

@@ -113,8 +113,8 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   `cedilla_xwayland_kwin_below`, KDE only) and the Flatpak overrides; when the second pass
   changes the decision it sets `alpi_cedilla_flipped` and asks for a new login (a new KWin needs
   a login, not a reboot). On: the
-  `cedilla_flatpak_overrides` layer replaces `flatpak_overrides_kde` app by app; Brave/VS Code
-  menu entries copied with `--ozone-platform=x11` (`roles/desktop/tasks/xwayland.yml`, plan from
+  `cedilla_flatpak_overrides` layer replaces `flatpak_overrides_kde` app by app; Brave/Google
+  Chrome/VS Code menu entries copied with `--ozone-platform=x11` (`roles/desktop/tasks/xwayland.yml`, plan from
   `alpi_xwayland_entries`: ALPI's copies carry a marker and are rebuilt on every run, AAPI's are
   recognized as the system entry plus the flag, a user's own copy only gets the flag); the flag
   in the Antigravity entry and the `antigravity-ide`/`code` aliases. Off: everything undone, and
@@ -272,10 +272,16 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   vendor's `.rpm`/`.deb` for the family's `upstream_package_format` (templated into `asset`),
   installed with dnf (`disable_gpg_check`) or apt's `deb:` when `upstream_package_query` (per
   family, `installed <version>`) is not the tag (`alpi_upstream_package_current`); removed with
-  the package manager. Forge unreachable keeps what is installed; `packages_absent` removes
-  it. The release body is parsed whatever its Content-Type. Name check in
-  `roles/packages/tasks/check.yml` (`alpi_upstream_missing`: a 404 or no matching asset or
-  checksum asset fails, no answer only warns). Installed by root, so it runs for root-only runs
+  the package manager. `vendor_package` (Google Chrome): the vendor's `.rpm`/`.deb` from a fixed
+  `url` per format, installed only when the package is missing; the package writes (and on every
+  install rewrites) its own repository, which updates it from then on, so ALPI never defines that
+  repository (a copy would flip back and forth and break idempotence). On RPM, `key` +
+  `key_fingerprint` (`rpm_key`) first and `rpmkeys --checksig` must say "signatures OK" (an
+  unsigned package exits 0 too); a `.deb` is unsigned (HTTPS). Forge unreachable keeps what is
+  installed; `packages_absent` removes it. The release body is parsed whatever its Content-Type.
+  Name check in `roles/packages/tasks/check.yml` (`alpi_upstream_missing`: a 404 or no matching
+  asset or checksum asset fails, no answer only warns; `vendor_package`: a HEAD on its URL, 404
+  fails). Installed by root, so it runs for root-only runs
   too.
 - Catalog values per distro may be `{native: …, repo: …}`: a repository only that distro needs
   (Oracle VirtualBox on EL). Catalog keys (`alpi_catalog_keys` per distro): Fedora
@@ -450,7 +456,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `/etc/default/locale`, apt's `full-update` (zsh must parse what it expands to), the AI tools'
     packages under Debian names; Ubuntu 26.04 and 24.04 containers without a desktop, where the Antigravity
     IDE gets its AppArmor profile (parsed by each release's own `apparmor_parser`, the container's kernel has no AppArmor). Cedilla on XWayland on KDE: stand-in `kwin` RPMs (rpmbuild) 6.6.4
-    installed, stand-in Brave/VS Code system entries (`files/xwayland/`, on every container),
+    installed, stand-in Brave/Google Chrome/VS Code system entries (`files/xwayland/`, on every container),
     AAPI's leftovers, and `roles/packages/tasks/flatpak_overrides.yml` run alone (flatpak only
     there); `side_effect.yml` keeps the on-state in `/root/alpi-xwayland-on/` and publishes 6.7.5,
     which converge's stand-in for `roles/update` installs before `tasks/cedilla.yml` runs again:

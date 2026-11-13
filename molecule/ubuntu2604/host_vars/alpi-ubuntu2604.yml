@@ -27,7 +27,7 @@ _golden:
     com.mattjakeman.ExtensionManager, de.haeckerfelix.Fragments, com.github.unrud.VideoDownloader]
   pipx: [uv, "markitdown[all]", "notebooklm-py[browser]", pdf2docx]
   # The Gitea and Forgejo CLIs and OpenLogi (its .rpm/.deb), from their releases everywhere (roles/upstream)
-  upstream: [forgejo-cli, tea, openlogi]
+  upstream: [forgejo-cli, tea, google-chrome, openlogi]
   extra: []
   absent: []
   unavailable: [gstreamer1-plugins-bad-free-extras, vlc-plugins-freeworld, asusctl, supergfxctl, asusctl-rog-gui,

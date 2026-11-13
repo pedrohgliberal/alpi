@@ -10,6 +10,7 @@
   gather_facts: false
   vars:
     _ol_versions: "{{ ['1.0.0', '2.0.0'] if inventory_hostname == 'alpi-up-install' else ['0.1.0'] }}"
+    _ol_builds: "{{ ['openlogi', 'google-chrome-stable'] | product(_ol_versions) | list }}"
   tasks:
     - name: Prepare | rpm-build
       ansible.builtin.package:
@@ -22,37 +23,39 @@
         state: directory
         mode: "0755"
 
+    # Each installs /usr/bin/<name> printing "<name> <version>"
     - name: Prepare | Spec files
       ansible.builtin.copy:
-        dest: "/opt/alpi-test/specs/openlogi-{{ item }}.spec"
+        dest: "/opt/alpi-test/specs/{{ item.0 }}-{{ item.1 }}.spec"
         content: |
-          Name: openlogi
-          Version: {{ item }}
+          Name: {{ item.0 }}
+          Version: {{ item.1 }}
           Release: 1
-          Summary: ALPI test stand-in for OpenLogi
+          Summary: ALPI test stand-in for {{ item.0 }}
           License: GPL-3.0-or-later
           BuildArch: noarch
           %description
-          ALPI test stand-in for OpenLogi.
+          ALPI test stand-in for {{ item.0 }}.
           %install
           mkdir -p %{buildroot}/usr/bin
-          printf '#!/bin/sh\necho "openlogi {{ item }}"\n' > %{buildroot}/usr/bin/openlogi
-          chmod 0755 %{buildroot}/usr/bin/openlogi
+          printf '#!/bin/sh\necho "{{ item.0 }} {{ item.1 }}"\n' > %{buildroot}/usr/bin/{{ item.0 }}
+          chmod 0755 %{buildroot}/usr/bin/{{ item.0 }}
           %files
-          /usr/bin/openlogi
+          /usr/bin/{{ item.0 }}
         mode: "0644"
-      loop: "{{ _ol_versions }}"
+      loop: "{{ _ol_builds }}"
 
     - name: Prepare | Build the packages
       ansible.builtin.command:
-        cmd: "rpmbuild -bb --define '_rpmdir /opt/alpi-test/rpms' /opt/alpi-test/specs/openlogi-{{ item }}.spec"
-        creates: "/opt/alpi-test/rpms/noarch/openlogi-{{ item }}-1.noarch.rpm"
-      loop: "{{ _ol_versions }}"
+        cmd: "rpmbuild -bb --define '_rpmdir /opt/alpi-test/rpms' /opt/alpi-test/specs/{{ item.0 }}-{{ item.1 }}.spec"
+        creates: "/opt/alpi-test/rpms/noarch/{{ item.0 }}-{{ item.1 }}-1.noarch.rpm"
+      loop: "{{ _ol_builds }}"
 
-    - name: Prepare | openlogi 0.1.0 installed
+    - name: Prepare | openlogi and google-chrome-stable 0.1.0 installed
       ansible.builtin.command:
-        cmd: rpm -i /opt/alpi-test/rpms/noarch/openlogi-0.1.0-1.noarch.rpm
-        creates: /usr/bin/openlogi
+        cmd: "rpm -i /opt/alpi-test/rpms/noarch/{{ item }}-0.1.0-1.noarch.rpm"
+        creates: "/usr/bin/{{ item }}"
+      loop: [openlogi, google-chrome-stable]
       when: inventory_hostname != 'alpi-up-install'
 
 # Two releases in the GitHub API's shape. Each zip has what the role must take (hinted/static
@@ -162,6 +165,16 @@
           (api / "latest").write_text((root / "openlogi-release-v1.0.0.json").read_text())
           PY
         creates: /srv/alpi-up/openlogi-release-v2.0.0.json
+
+    # Google's fixed download URL: 1.0.0 now, 2.0.0 kept for side_effect.yml
+    - name: Prepare | google-chrome-stable at its fixed URL
+      ansible.builtin.shell:
+        cmd: |
+          mkdir -p /srv/alpi-up/dl/chrome
+          cp /opt/alpi-test/rpms/noarch/google-chrome-stable-1.0.0-1.noarch.rpm /srv/alpi-up/dl/chrome/google-chrome-stable_current_x86_64.rpm
+          cp /opt/alpi-test/rpms/noarch/google-chrome-stable-2.0.0-1.noarch.rpm /srv/alpi-up/chrome-2.0.0.rpm
+        creates: /srv/alpi-up/chrome-2.0.0.rpm
+      when: inventory_hostname == 'alpi-up-install'
 
     # Detached, or the exec never returns
     - name: Prepare | HTTP server on 127.0.0.1:8766

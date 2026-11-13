@@ -423,7 +423,8 @@
     _xw_overrides: /home/alpi/.local/share/flatpak/overrides
     _xw_on: /root/alpi-xwayland-on
     _xw_marker: "# ALPI: copy of the system entry on XWayland"
-    _xw_entries: [brave-browser.desktop, com.microsoft.VSCode.desktop, com.microsoft.VSCode.UrlHandler.desktop]
+    _xw_entries: [brave-browser.desktop, com.google.Chrome.desktop, com.microsoft.VSCode.desktop,
+                  com.microsoft.VSCode.UrlHandler.desktop]
     _xw_flatpaks: [com.slack.Slack, com.spotify.Client, com.bitwarden.desktop, com.rtosta.zapzap, us.zoom.Zoom]
   tasks:
     - name: Verify | Read the cedilla fact, the menu entries, .zshrc and the overrides as they are now
@@ -479,6 +480,12 @@
                 ['Exec=/usr/bin/brave-browser-stable --ozone-platform=x11 %U',
                  'Exec=/usr/bin/brave-browser-stable --ozone-platform=x11',
                  'Exec=/usr/bin/brave-browser-stable --ozone-platform=x11 --incognito']
+              # Google Chrome (its new desktop id): the same
+              - _on['com.google.Chrome.desktop'].startswith(_xw_marker)
+              - _on['com.google.Chrome.desktop'].splitlines() | select('match', '^Exec=') | list ==
+                ['Exec=/usr/bin/google-chrome-stable --ozone-platform=x11 %U',
+                 'Exec=/usr/bin/google-chrome-stable --ozone-platform=x11',
+                 'Exec=/usr/bin/google-chrome-stable --ozone-platform=x11 --incognito']
               # AAPI's copy of the URL handler taken over (marker added, flag once)
               - _on['com.microsoft.VSCode.UrlHandler.desktop'].startswith(_xw_marker)
               - "'Exec=/usr/share/code/code --ozone-platform=x11 --open-url %U' in _on['com.microsoft.VSCode.UrlHandler.desktop']"
@@ -510,6 +517,7 @@
               - _xw_flag not in _xw_now_text['.zshrc']
               # ALPI's (and AAPI's) copies gone, the user's own entry as it was
               - "'brave-browser.desktop' not in _xw_now_present"
+              - "'com.google.Chrome.desktop' not in _xw_now_present"
               - "'com.microsoft.VSCode.UrlHandler.desktop' not in _xw_now_present"
               - _xw_now_text['com.microsoft.VSCode.desktop'] ==
                 '[Desktop Entry]\nName=My Code\nExec=/opt/code/code --user-data-dir=/srv/code\nType=Application\n'

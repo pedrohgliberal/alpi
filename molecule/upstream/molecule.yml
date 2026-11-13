@@ -5,14 +5,19 @@
 # as Gitea publishes it, .xz + .sha256 next to a bare decoy; fj in a .tar.gz with a README):
 # openlogi (release_package): stand-in RPMs built in prepare.yml, published under OpenLogi's asset
 # names next to a .deb, a signature and an arm64 decoy; v0.1.0 preinstalled on offline and absent.
+# google-chrome (vendor_package): a stand-in google-chrome-stable RPM at a fixed URL, 1.0.0
+# published; 0.1.0 preinstalled on offline and absent.
 #   alpi-up-install: installs v1 (only hinted/static/*.ttf, root-owned, version recorded; tea and
 #                    fj in /usr/local/bin, root 0755, versions in /var/lib/alpi/upstream; openlogi
 #                    1.0.0 through dnf);
 #                    side_effect.yml publishes v2 (a font dropped, one added; tea v2), deletes
 #                    fj and runs again: fonts replaced wholesale, tea v2, fj v1 back, openlogi
-#                    upgraded to 2.0.0
+#                    upgraded to 2.0.0, google-chrome-stable 2.0.0 published at the same URL
+#                    and not taken (installed only when missing: its own repository updates it)
 #   alpi-up-offline: the API does not answer: the installed versions stay, the run goes on
-#   alpi-up-absent:  google-roboto-fonts, tea, forgejo-cli and openlogi in packages_absent: removed
+#                    (google-chrome-stable installed: nothing downloaded)
+#   alpi-up-absent:  google-roboto-fonts, tea, forgejo-cli, openlogi and google-chrome in
+#                    packages_absent: removed
 platforms:
   - name: alpi-up-install
     image: docker.io/library/almalinux:10

@@ -302,3 +302,12 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   `ubuntu2404-personal`). `ALPI_GITHUB_TOKEN` (`tests/run.sh`: `gh auth token`) goes to
   `api.github.com` only (`alpi_release_headers`); real runs can set it too
   (`feat(upstream): optional GitHub token for the release queries`).
+- **2026-11-12** Google Chrome in the catalog, a default (`google-chrome`), from Google's own
+  `.rpm`/`.deb` (`roles/upstream`'s new `vendor_package` type): installed when missing, the RPM's
+  signature checked against Google's pinned key; the package writes and rewrites its own
+  repository (checked on Fedora 44, EL10, Debian 13, Ubuntu 24.04: a copy in ALPI's format was
+  rewritten by the install), which updates it. On KDE with KWin < 6.7 its menu entries run on
+  XWayland with the cedilla workaround (an AlmaLinux KDE notebook with Chrome crashing on the
+  NVIDIA driver, TODO section 9). `upstream` tests a stand-in at a fixed URL (installed, not
+  updated from the URL, kept offline, removed), `user` the menu entry copy, `el10-work` and
+  `debian13-personal` the real packages (`feat(packages): Google Chrome from Google's package`).

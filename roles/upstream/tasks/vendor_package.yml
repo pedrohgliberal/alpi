@@ -1,0 +1,92 @@
+---
+# The vendor's own .rpm or .deb from a fixed download URL (upstream.url[upstream_package_format]),
+# for software whose package sets up the vendor's repository itself (Google Chrome): installed
+# only when upstream.package is not installed, and from then on updated from that repository with
+# the rest of the system (roles/update). ALPI never writes the vendor's repository: the package
+# rewrites its own file on every install, so a second copy would undo it on every run. On RPM, the
+# vendor's key (upstream.key, checked against upstream.key_fingerprint) is imported first and the
+# package must carry a signature it verifies; a .deb carries none (apt checks the repository's
+# signed metadata on updates), so HTTPS is the check. Vars: upstream_id, upstream, upstream_state
+# (present | absent).
+
+- name: Upstream | {{ upstream_id }}
+  when: upstream_state == 'present'
+  block:
+    # upstream_package_query per family (group_vars/family_*/main.yml); rc 1 when absent
+    - name: Upstream | {{ upstream_id }}, installed version
+      ansible.builtin.command:
+        argv: "{{ upstream_package_query + [upstream.package] }}"
+      register: _vp_query
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Upstream | {{ upstream_id }}, install
+      when: not (_vp_query.stdout | default('') | trim).startswith('installed ')
+      block:
+        - name: Upstream | {{ upstream_id }}, signing key
+          ansible.builtin.rpm_key:
+            key: "{{ upstream.key }}"
+            fingerprint: "{{ upstream.key_fingerprint }}"
+            state: present
+          when: upstream_package_format == 'rpm' and upstream.key is defined
+
+        # --check cannot download into a directory it never creates
+        - name: Upstream | {{ upstream_id }}, would install (check mode)
+          ansible.builtin.debug:
+            msg: "Would install {{ upstream_id }} from {{ upstream.url[upstream_package_format] }}"
+          changed_when: true
+          when: ansible_check_mode
+
+        - name: Upstream | {{ upstream_id }}, download and install
+          when: not ansible_check_mode
+          block:
+            - name: Upstream | {{ upstream_id }}, temporary directory
+              ansible.builtin.tempfile:
+                state: directory
+                suffix: "{{ upstream_id }}"
+              register: _vp_tmp
+
+            - name: Upstream | {{ upstream_id }}, download
+              ansible.builtin.get_url:
+                url: "{{ upstream.url[upstream_package_format] }}"
+                dest: "{{ _vp_tmp.path }}/{{ upstream.url[upstream_package_format] | basename }}"
+                mode: "0644"
+              register: _vp_file
+
+            # rpmkeys exits 0 on an unsigned package too ("digests OK"): require a signature
+            - name: Upstream | {{ upstream_id }}, check the signature
+              ansible.builtin.command:
+                argv: [rpmkeys, --checksig, "{{ _vp_file.dest }}"]
+              environment:
+                LC_ALL: C
+              register: _vp_sig
+              changed_when: false
+              failed_when: _vp_sig.rc != 0 or 'signatures OK' not in _vp_sig.stdout
+              when: upstream_package_format == 'rpm' and upstream.key is defined
+
+            - name: Upstream | {{ upstream_id }}, install with dnf
+              ansible.builtin.dnf:
+                name: "{{ _vp_file.dest }}"
+                state: present
+                disable_gpg_check: "{{ upstream.key is not defined }}"
+              when: upstream_package_format == 'rpm'
+
+            - name: Upstream | {{ upstream_id }}, install with apt
+              ansible.builtin.apt:
+                deb: "{{ _vp_file.dest }}"
+              when: upstream_package_format == 'deb'
+
+          always:
+            - name: Upstream | {{ upstream_id }}, remove the temporary directory
+              ansible.builtin.file:
+                path: "{{ _vp_tmp.path }}"
+                state: absent
+              when: _vp_tmp.path is defined
+
+# The vendor's repository file stays (the package leaves it behind on removal)
+- name: Upstream | {{ upstream_id }}, remove
+  ansible.builtin.package:
+    name: "{{ upstream.package }}"
+    state: absent
+  when: upstream_state == 'absent'
