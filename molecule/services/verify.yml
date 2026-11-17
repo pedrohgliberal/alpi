@@ -35,3 +35,53 @@
           - _enabled.rc != 0
         quiet: true
       when: inventory_hostname == 'alpi-svc-skip'
+
+    - name: Verify | Query switcheroo-control
+      ansible.builtin.command: "systemctl {{ item }} switcheroo-control.service"
+      loop: [is-enabled, is-active]
+      register: _switcheroo
+      changed_when: false
+      failed_when: false
+
+    - name: Verify | switcheroo-control enabled and running (EL)
+      ansible.builtin.assert:
+        that:
+          - "'switcheroo-control' in alpi_pkgs.native"
+          - _switcheroo.results | map(attribute='stdout') | list == ['enabled', 'active']
+        fail_msg: "{{ _switcheroo.results | map(attribute='stdout') | list }}"
+        quiet: true
+      when: inventory_hostname == 'alpi-svc-on'
+
+    # Skipped id (EL) or nothing to install (Debian): the unit is not there, nothing enabled
+    - name: Verify | switcheroo-control left alone
+      ansible.builtin.assert:
+        that:
+          - "'switcheroo-control' not in alpi_pkgs.native"
+          - _switcheroo.results[0].rc != 0
+        fail_msg: "{{ _switcheroo.results | map(attribute='stdout') | list }}"
+        quiet: true
+      when: inventory_hostname != 'alpi-svc-on'
+
+    - name: Verify | Read /etc/environment and the udev rules
+      ansible.builtin.shell: >-
+        cat /etc/environment; ls /etc/udev/rules.d/61-igpu-card.rules /etc/udev/rules.d/61-nvidia-card.rules 2>/dev/null
+      register: _kwin
+      changed_when: false
+      failed_when: false
+      when: inventory_hostname != 'alpi-svc-debian13'
+
+    # Forced on a desktop: the iGPU rule and the variable; the NVIDIA card stays out (default off)
+    - name: Verify | KWin on the iGPU, forced (alpi-svc-on)
+      ansible.builtin.assert:
+        that: _kwin.stdout_lines == ['LANG=C.UTF-8', 'KWIN_DRM_DEVICES=/dev/dri/igpu-card', '/etc/udev/rules.d/61-igpu-card.rules']
+        fail_msg: "{{ _kwin.stdout_lines }}"
+        quiet: true
+      when: inventory_hostname == 'alpi-svc-on'
+
+    # Not a hybrid laptop: both rules and ALPI's two-device line gone, the rest kept
+    - name: Verify | KWin's earlier setup undone (alpi-svc-skip)
+      ansible.builtin.assert:
+        that: _kwin.stdout_lines == ['LANG=C.UTF-8']
+        fail_msg: "{{ _kwin.stdout_lines }}"
+        quiet: true
+      when: inventory_hostname == 'alpi-svc-skip'

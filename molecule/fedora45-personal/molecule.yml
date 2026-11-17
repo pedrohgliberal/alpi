@@ -10,9 +10,9 @@ platforms:
     volumes: ["alpi-dnf-fedora45-personal:/var/cache/libdnf5"]
 provisioner:
   options:
-    extra-vars: '{"is_nvidia": false, "is_asus": true, "is_intel": true, "is_amd": true}'
+    extra-vars: '{"is_nvidia": false, "is_nvidia_pre_turing": false, "is_intel_panel": false, "is_asus": true, "is_intel": true, "is_amd": true}'
     # As fedora44-personal
-    skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
+    skip-tags: molecule-notest,notest,clamav,supergfxd,switcheroo,update,memory
   playbooks:
     prepare: ../fedora44-personal/prepare.yml
     verify: ../fedora44-personal/verify.yml

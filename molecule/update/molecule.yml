@@ -5,6 +5,10 @@
 # dnf wrapper still runs the real needs-restarting and fails unless it returns 0 or 1):
 #   alpi-upd-fedora44-ok:      no reboot needed: the play goes on past the role
 #   alpi-upd-el10-reboot:      needs-restarting says reboot (dnf4): the play stops for the host
+#   alpi-upd-el10-fit:         no reboot needed: the play goes on
+# Both EL instances also check the kernel/module fit (nvidia_kmod_hold_*) against stand-ins: a
+# local repository has kernel 1.0 (installed) and 2.0 with a changed symbol, and a module package
+# requiring 1.0's symbol on el10-reboot (the upgrade must keep 1.0) and 2.0's on el10-fit (2.0).
 #   alpi-upd-fedora44-kernel:  needs-restarting says no, but a newer kernel is installed (noir's
 #                              local-time RTC case): the play stops
 # Every dnf instance also has an installed freeworld stand-in pinned to its library's exact
@@ -27,6 +31,11 @@ platforms:
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-upd-el10-reboot:/var/cache/dnf"]
+  - name: alpi-upd-el10-fit
+    image: docker.io/library/almalinux:10
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-upd-el10-fit:/var/cache/dnf"]
   - name: alpi-upd-fedora44-kernel
     image: registry.fedoraproject.org/fedora:44
     pre_build_image: true

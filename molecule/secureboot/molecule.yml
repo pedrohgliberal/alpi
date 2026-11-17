@@ -6,7 +6,13 @@
 #   alpi-sb-fedora44:   Secure Boot, NVIDIA vetoed: the virtualbox id alone must trigger akmods_mok
 #   alpi-nosb-fedora44: no Secure Boot, NVIDIA on: modprobe settings, no key, no mokutil call;
 #                       VirtualBox off: its stale kvm setting removed
-#   alpi-sb-el10:       Secure Boot: Oracle VirtualBox key (no akmod on EL), NVIDIA unavailable
+#   alpi-sb-el10:       Secure Boot: Oracle VirtualBox key (no akmod on EL); NVIDIA on with
+#                       AlmaLinux's prebuilt modules: no key, nothing built (the missing module is
+#                       reported), options in ALPI's own file, the vendor's nvidia.conf (a
+#                       stand-in in /usr/lib/modprobe.d, the nouveau blacklist) not masked
+#                       Hybrid laptop (is_intel_panel, pinned on every instance): the udev rule
+#                       and KWIN_DRM_DEVICES (a stale line replaced; the link stands in for udevd),
+#                       prime-run and nvidia-kmod-check; none of it on the other distros
 #   alpi-sb-debian13:   Secure Boot, NVIDIA and VirtualBox on: the DKMS key (real dkms
 #                       generate_mok) and the Oracle key, each enrolled; NVIDIA's options under
 #                       Debian's module name in a file of ALPI's, Debian's own nvidia.conf kept
@@ -58,7 +64,9 @@ platforms:
     volumes: ["${MOLECULE_SCENARIO_DIRECTORY}/firmware:/sys/firmware:ro", "alpi-dnf-sb-ubuntu2404:/var/cache/apt"]
 provisioner:
   options:
-    extra-vars: '{"is_nvidia": true, "is_asus": false, "is_intel": false, "is_amd": false}'
+    extra-vars: '{"is_nvidia": true, "is_nvidia_pre_turing": false, "is_intel_panel": true, "is_asus": false, "is_intel": false, "is_amd": false}'
+    # switcheroo-control's service needs systemd ('services' runs it)
+    skip-tags: molecule-notest,notest,switcheroo
   playbooks:
     prepare: prepare.yml
     converge: converge.yml

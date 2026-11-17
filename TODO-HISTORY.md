@@ -273,6 +273,42 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   Fedora 44's `@multimedia` back on Fedora 44 and EL, Fedora from 44, Fedora 45 checked on noir
   (`docs(todo): v1.6.0 tagged`).
 
+## 9. NVIDIA: AlmaLinux 10, and older GPUs on Ubuntu
+
+- **2026-11-16** Catalog and repository: AlmaLinux 10 installs AlmaLinux's NVIDIA driver
+  (`nvidia-open-kmod`, `nvidia-driver`, `nvidia-driver-cuda`; VA-API from EPEL's
+  `libva-nvidia-driver`; Vulkan and the build ids `[]`) from `almalinux-nvidia`, enabled by
+  `almalinux-release-nvidia-driver`. Checked in `almalinux:10` (10.2): 620.70.06, prebuilt open
+  modules under the kmod's kernel and weak-updates, no NVIDIA packages in RPM Fusion's EL
+  repositories, x86_64 only. `catalog` checks the names, `el10-work` installs them (its
+  `prepare.yml` installs a kernel first: without one dnf meets the kmod's `kernel-modules`
+  requirement with kernel-debug packages) (`feat(nvidia): AlmaLinux's NVIDIA driver on EL10`).
+- **2026-11-16** `roles/nvidia` on EL: options in `/etc/modprobe.d/alpi-nvidia.conf` (the
+  vendor's `/usr/lib/modprobe.d/nvidia.conf` holds the nouveau blacklist, which Fedora's file
+  name would mask; `nvidia_modprobe_conf` moved from `family_RedHat` to `os_Fedora` and
+  `os_AlmaLinux_10`), no build step: a missing module for the running kernel is reported where
+  `kmod_signer` is `none`. Pre-Turing GPUs: skipped with a message where
+  `nvidia_open_modules_only` is set (AlmaLinux 10), from the PCI device id
+  (`alpi_nvidia_pre_turing`, `is_nvidia_pre_turing`, pinned in every scenario). `secureboot`'s EL
+  instance (options, no key, the vendor file left alone), `flags` (an EL instance with a
+  pre-Turing GPU: NVIDIA off; Fedora keeps it on) and unit tests cover it
+  Then: the upgrade holds a kernel AlmaLinux's module cannot load yet (`update`, stand-ins),
+  `alpi-nvidia-check` for the acceptance checks (`el10-work`, which also checks prime-run's EGL
+  file), `nvidia_kwin_igpu_force` for desktops and `nvidia_kwin_dgpu` (off) for external ports on
+  the NVIDIA GPU (`services`, `el10-work`)
+  (`feat(nvidia): AlmaLinux's NVIDIA driver on EL10`).
+- **2026-11-17** Hybrid laptops on EL (PROPOSAL "Decisions (2026-11-17)"): Plasma went black
+  after login on the AlmaLinux notebook once the driver loaded (KWin on the NVIDIA card); fixed
+  there by hand with a udev link to the iGPU and `KWIN_DRM_DEVICES`, now `roles/nvidia`'s
+  `kwin_igpu.yml` (`is_intel_panel`: an i915/xe card with an eDP connector), plus `prime-run`,
+  switcheroo-control, `nvidia-kmod-check` (run by the role, the reboot gate and `full-update`),
+  older kernels kept by `roles/boot`, an optional kernel versionlock, and a stop on another
+  driver source's packages (`alpi_nvidia_foreign`). Covered by `secureboot` (EL: rule, a stale
+  `KWIN_DRM_DEVICES` replaced, prime-run; none of it elsewhere), `el10-work` (the real driver:
+  module check OK, versionlock, old kernels kept), `failures` (another source; the link missing),
+  `services` (switcheroo-control), `boot` (`kernel_keep_old`) and unit tests
+  (`feat(nvidia): AlmaLinux's NVIDIA driver on EL10`).
+
 ## Maintenance
 
 - **2026-10-23** VirtualBox vs KVM on kernel 6.12+: kvm keeps VMX on from load

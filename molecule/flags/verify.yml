@@ -10,6 +10,7 @@
         that:
           - is_nvidia is string
           - alpi_feature.nvidia is true
+          - not (alpi_nvidia_unsupported | bool)
           - alpi_feature.asus is false
           - alpi_feature.intel is false
           - alpi_feature.amd is false
@@ -20,3 +21,20 @@
           is_nvidia={{ is_nvidia | string }} ({{ is_nvidia | type_debug }}),
           features={{ alpi_feature }}, native={{ alpi_pkgs.native }}
         quiet: true
+      when: inventory_hostname == 'alpi-flags-fedora44'
+
+    # Open modules only: a GPU older than Turing is reported and NVIDIA stays off, so neither
+    # the driver nor its repository is selected
+    - name: Verify | A pre-Turing GPU turns NVIDIA off on AlmaLinux
+      ansible.builtin.assert:
+        that:
+          - is_nvidia_pre_turing is string
+          - alpi_nvidia_unsupported | bool
+          - alpi_feature.nvidia is false
+          - "'nvidia-driver' not in alpi_ids_selected"
+          - "'nvidia-driver' not in alpi_pkgs.native and 'almalinux-nvidia' not in alpi_pkgs.repos"
+        fail_msg: >-
+          pre_turing={{ is_nvidia_pre_turing | string }}, features={{ alpi_feature }},
+          native={{ alpi_pkgs.native }}, repos={{ alpi_pkgs.repos }}
+        quiet: true
+      when: inventory_hostname == 'alpi-flags-el10'

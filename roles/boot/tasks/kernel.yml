@@ -25,11 +25,20 @@
     file: "debug_repos_{{ 'dnf5' if ansible_facts['pkg_mgr'] == 'dnf5' else 'dnf4' }}.yml"
 
 # Every installonly package (kernels) but the newest version of each, minus the running kernel.
+# kernel_keep_old (group_vars/all/boot.yml): kept for the prebuilt NVIDIA modules (EL).
+- name: Kernel | Keep older kernels
+  ansible.builtin.debug:
+    msg: >-
+      Older kernels kept (kernel_keep_old): AlmaLinux's prebuilt NVIDIA modules may lag behind a
+      new kernel, and an older one in GRUB keeps the driver. dnf's installonly_limit prunes them.
+  when: kernel_keep_old | bool
+
 - name: Kernel | List old kernels
   ansible.builtin.command: dnf -q repoquery --installonly --latest-limit=-1
   register: _old_kernels
   changed_when: false
   check_mode: false
+  when: not kernel_keep_old | bool
 
 # allowerasing also removes what is bound to those exact kernels: the kmod-<name>-<kernel> packages
 # akmods built for them (VirtualBox, NVIDIA). Without it dnf refuses with a depsolve error, since
@@ -42,5 +51,6 @@
   vars:
     _remove: "{{ _old_kernels.stdout_lines | reject('search', ansible_facts['kernel'] | regex_escape) | list }}"
   when:
+    - not kernel_keep_old | bool
     - _remove | length > 0
     - not ansible_check_mode

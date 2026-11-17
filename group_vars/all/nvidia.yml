@@ -1,0 +1,57 @@
+---
+# roles/nvidia (and roles/boot's kernel_keep_old): steps only AlmaLinux 10 turns on
+# (group_vars/os_AlmaLinux_10). Fedora, Debian and Ubuntu keep these defaults: none of it runs.
+
+# Hybrid laptops (an NVIDIA GPU plus an Intel iGPU driving the built-in panel, is_intel_panel):
+# KWin takes the NVIDIA card as its primary DRM device once nvidia-drm loads, and that card has no
+# screen, so Plasma goes black right after login (AlmaLinux notebook, MX450, 2026-11-17). A udev
+# rule names the iGPU's card /dev/dri/igpu-card (cardN changes between boots, and /dev/dri/by-path
+# names hold ':', KWIN_DRM_DEVICES's separator) and /etc/environment points KWin at it. Applied
+# whenever the GPU is there, driver or not: a vetoed driver leaves its packages installed.
+nvidia_kwin_igpu: false
+nvidia_kwin_igpu_rule: /etc/udev/rules.d/61-igpu-card.rules
+nvidia_kwin_igpu_device: /dev/dri/igpu-card
+# A desktop whose monitor is on the motherboard's (iGPU's) port: no eDP panel, so is_intel_panel
+# stays false and KWin is left alone; this applies the fix anyway (custom.yml). On a desktop whose
+# monitor is on the NVIDIA card it would leave Plasma on a GPU with no screen.
+nvidia_kwin_igpu_force: false
+# Off by default until tested on hardware (TODO 9): also hand KWin the NVIDIA card, second in
+# KWIN_DRM_DEVICES (the first stays the primary), for external ports wired to the NVIDIA GPU. A
+# second rule names it /dev/dri/nvidia-card; the link appears once nvidia-drm loads, so the run
+# after the reboot adds it.
+nvidia_kwin_dgpu: false
+nvidia_kwin_dgpu_rule: /etc/udev/rules.d/61-nvidia-card.rules
+nvidia_kwin_dgpu_device: /dev/dri/nvidia-card
+
+# /usr/local/bin/prime-run (Arch's nvidia-prime; EL packages none) while the driver is selected
+nvidia_prime_run: false
+
+# /usr/local/bin/alpi-nvidia-check: the acceptance checks after the reboot (driver, nouveau, KWin's
+# device, prime-run with GLX, EGL and Vulkan), PASS/FAIL per line; run by the user in Plasma
+nvidia_acceptance_check: false
+
+# The prebuilt modules follow AlmaLinux's kernels with a delay: /usr/local/bin/nvidia-kmod-check
+# says whether the newest installed kernel has one (run here, at the reboot gate and by EL's
+# full-update alias), and roles/boot keeps the older kernels (dnf's installonly_limit prunes them).
+nvidia_kmod_check: false
+
+# Before roles/update's upgrade (while kernel_keep_old, group_vars/all/boot.yml): when the newest
+# kernel in the repositories lacks kernel symbols the newest module package requires (what
+# weak-modules checks), the upgrade leaves the kernel packages out and says so; the next run takes
+# the kernel once AlmaLinux publishes its module. Nothing is locked: dnf upgrade by hand (or the
+# full-update alias, whose nvidia-kmod-check then warns) still brings the kernel.
+nvidia_kmod_hold_kernel: kernel-core
+nvidia_kmod_hold_module: kmod-nvidia-open
+nvidia_kmod_hold_packages: [kernel, kernel-core, kernel-modules, kernel-modules-core, kernel-modules-extra]
+
+# Optional (custom.yml), EL only: hold the kernel packages at their installed versions
+# (dnf versionlock) so an upgrade never brings a kernel without a module. Turning it off does not
+# release them: sudo dnf versionlock delete kernel kernel-core kernel-modules kernel-modules-core
+nvidia_kernel_versionlock: false
+nvidia_kernel_versionlock_packages: [kernel, kernel-core, kernel-modules, kernel-modules-core]
+
+# Packages from other NVIDIA driver sources (shell globs) that must not meet the distro's driver,
+# and names matching them that belong to it. Checked in tasks/resolve.yml when the driver is
+# selected: the run stops and names what to remove. Empty: no check.
+nvidia_foreign_packages: []
+nvidia_foreign_packages_allowed: []

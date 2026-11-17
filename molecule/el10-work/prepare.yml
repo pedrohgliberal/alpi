@@ -5,6 +5,44 @@
 - name: Prepare | No udevd
   ansible.builtin.import_playbook: ../shared/no_udevd.yml
 
+# A real machine has a kernel: without one, dnf meets kmod-nvidia-open's 'kernel-modules >= …'
+# with kernel-debug-modules, which roles/boot then removes. kernel-core too: nvidia-kmod-check
+# (and roles/update's gate) read the installed kernels from it, and kernel-modules alone does
+# not pull it in.
+- name: Prepare | A kernel, as on a real machine
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Prepare | Install kernel-core and kernel-modules
+      ansible.builtin.dnf:
+        name: [kernel-core, kernel-modules]
+        state: present
+
+# A hybrid laptop (is_intel_panel pinned true): no udevd in a container, so the links the udev rules
+# would make stand in, and an older KWIN_DRM_DEVICES line must give way to ALPI's
+- name: Prepare | The iGPU's card link and a stale KWin setting
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Prepare | Create /dev/dri
+      ansible.builtin.file:
+        path: /dev/dri
+        state: directory
+        mode: "0755"
+
+    - name: Prepare | Link the stand-in cards (iGPU; NVIDIA, nvidia_kwin_dgpu in custom.yml)
+      ansible.builtin.file:
+        src: /dev/null
+        dest: "{{ item }}"
+        state: link
+      loop: [/dev/dri/igpu-card, /dev/dri/nvidia-card]
+
+    - name: Prepare | Write a stale KWIN_DRM_DEVICES
+      ansible.builtin.copy:
+        content: "KWIN_DRM_DEVICES=/dev/dri/card1\n"
+        dest: /etc/environment
+        mode: "0644"
+
 # A machine set up by AAPI: its repository files, as its yum_repository tasks wrote them. ALPI
 # must rewrite these (same ids), not add the same repositories again under other ids.
 - name: Prepare | AAPI's repository files

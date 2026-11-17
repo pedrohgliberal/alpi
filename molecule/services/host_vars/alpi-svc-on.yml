@@ -1,2 +1,5 @@
 ---
-# Defaults only: ClamAV on, so freshclam must be enabled and running
+# Defaults only: ClamAV on, so freshclam must be enabled and running; NVIDIA (pinned on) brings
+# switcheroo-control on EL, which must be enabled and running too
+# A desktop with its monitor on the iGPU's port: KWin on the iGPU anyway (custom.yml's override)
+nvidia_kwin_igpu_force: true

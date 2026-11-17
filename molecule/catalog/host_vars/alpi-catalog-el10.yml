@@ -7,7 +7,8 @@ _golden:
     ffmpeg, gstreamer1-plugins-bad-freeworld, gstreamer1-plugins-ugly, gstreamer1-plugin-libav, vlc-plugins-freeworld, libheif-freeworld, lynis, rkhunter,
     brave-browser, brave-origin, chromium, discord, gh, code, kde-gtk-config, ktorrent, plasma-sdk, flatseal,
     gnome-tweaks, clamav, clamav-freshclam, VirtualBox-7.2, kernel-devel, gcc, make, elfutils-libelf-devel,
-    libva-intel-driver, intel-media-driver]
+    libva-intel-driver, intel-media-driver, nvidia-open-kmod, nvidia-driver, nvidia-driver-cuda, libva-nvidia-driver,
+    switcheroo-control, glx-utils, egl-utils, vulkan-tools]
   swap: [ffmpeg]
   flatpak: [org.kde.drawy, org.inkscape.Inkscape, org.telegram.desktop, com.bitwarden.desktop, net.displaycal.DisplayCAL, com.dec05eba.gpu_screen_recorder,
     com.slack.Slack, com.spotify.Client, com.rtosta.zapzap, us.zoom.Zoom, org.zotero.Zotero, org.libreoffice.LibreOffice,
@@ -15,10 +16,9 @@ _golden:
     com.mattjakeman.ExtensionManager, de.haeckerfelix.Fragments, com.github.unrud.VideoDownloader]
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
     intel: true, nvidia: true, steam: true, virtualbox: true}
-  repos: [crb, epel, rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, virtualbox]
+  repos: [crb, epel, rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, virtualbox, almalinux-nvidia]
   unavailable: [gstreamer1-plugins-bad-free-extras, chkrootkit, unhide, argyllcms, steam, asusctl,
-    supergfxctl, asusctl-rog-gui, mesa-va-drivers-freeworld, libva-utils, vdpauinfo, nvidia-driver, nvidia-build,
-    nvidia-vulkan, nvidia-vaapi]
+    supergfxctl, asusctl-rog-gui, mesa-va-drivers-freeworld, libva-utils, vdpauinfo]
   pipx: ["markitdown[all]", "notebooklm-py[browser]", pdf2docx]
   # From their releases (roles/upstream): the Gitea and Forgejo CLIs and OpenLogi everywhere, Roboto (not packaged for EL)
   upstream: [forgejo-cli, tea, roboto, google-chrome, openlogi]

@@ -2,6 +2,7 @@
 
 import base64
 import binascii
+import fnmatch
 import json
 import re
 from urllib.parse import urlsplit
@@ -220,6 +221,41 @@ def alpi_features(merged, hardware, detected):
         else:
             out[name] = bool(value)
     return out
+
+
+# First Turing device id (TU102, 0x1e02): every earlier generation (Maxwell, Pascal, Volta) sits
+# below it, Turing and later above (TU116 0x21xx, TU117 0x1fxx, Ampere 0x2[2-5]xx…).
+NVIDIA_TURING_FIRST_ID = 0x1E00
+NVIDIA_DEVICE_RE = re.compile(r"\[10de:([0-9a-f]{4})\]", re.IGNORECASE)
+
+
+def alpi_nvidia_pre_turing(lspci):
+    """Whether every NVIDIA GPU in `lspci -nn` output predates Turing.
+
+    lspci: the display lines of `lspci -nn` (env_setup's gpu_info); NVIDIA devices carry
+    "[10de:<device id>]". Open kernel modules drive only Turing and newer, so a distro whose
+    driver has only open modules (nvidia_open_modules_only) cannot drive such a GPU. False when no
+    NVIDIA device id is found, or when any NVIDIA GPU is Turing or newer (that one is driven).
+    """
+    ids = [int(m, 16) for m in NVIDIA_DEVICE_RE.findall(str(lspci or ""))]
+    return bool(ids) and all(i < NVIDIA_TURING_FIRST_ID for i in ids)
+
+
+def alpi_nvidia_foreign(installed, patterns, allowed=None):
+    """Installed packages from another NVIDIA driver source, sorted.
+
+    installed: package names, one per line (`rpm -qa --qf '%{NAME}\\n'`) or a list. patterns:
+    shell globs (fnmatch) naming the other sources' packages (nvidia_foreign_packages); allowed:
+    exact names that match a pattern but belong to the distro's own driver (nvidia-kmod-common
+    matches nvidia-kmod*).
+    """
+    names = installed.splitlines() if isinstance(installed, str) else list(installed or [])
+    allowed = set(allowed or [])
+    return sorted({
+        n.strip() for n in names
+        if n.strip() and n.strip() not in allowed
+        and any(fnmatch.fnmatchcase(n.strip(), p) for p in patterns or [])
+    })
 
 
 def alpi_flatpak_overrides(layers, filesystem, selected, reset_if=None):
@@ -644,6 +680,8 @@ class FilterModule(object):
             "alpi_apt_simulation": alpi_apt_simulation,
             "alpi_canonical": alpi_canonical,
             "alpi_features": alpi_features,
+            "alpi_nvidia_pre_turing": alpi_nvidia_pre_turing,
+            "alpi_nvidia_foreign": alpi_nvidia_foreign,
             "alpi_repos": alpi_repos,
             "alpi_feature_ids": alpi_feature_ids,
             "alpi_flatpak_overrides": alpi_flatpak_overrides,

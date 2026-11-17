@@ -19,7 +19,7 @@
     - name: Verify | Old kernel and debug kernel removed, debug repository disabled
       ansible.builtin.assert:
         that:
-          - _q.results[0].stdout_lines == ['2.0']
+          - _q.results[0].stdout_lines | sort == (['1.0', '2.0'] if inventory_hostname == 'alpi-boot-el10-keep' else ['2.0'])
           - _q.results[1].rc != 0
           - _q.results[2].stdout_lines | select('match', 'alpi-test-debug\\s') | list | length == 1
         fail_msg: "{{ _q.results[:3] | map(attribute='stdout') | list }}"

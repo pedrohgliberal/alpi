@@ -7,3 +7,7 @@ packages_skip: [slack, spotify, zapzap, zoom, zotero]
 packages_add: ["pkg:tree", steam, "pipx:cowsay"]
 packages_absent: ["pkg:nano"]
 # No hostname and no git identity: the hostname is left alone, only the git defaults are written.
+# Off by default (group_vars/all/nvidia.yml): the kernel packages held at their versions
+nvidia_kernel_versionlock: true
+# Off by default until tested on hardware: the NVIDIA card as KWin's second device
+nvidia_kwin_dgpu: true

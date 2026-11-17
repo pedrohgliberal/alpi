@@ -121,7 +121,11 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   each cedilla app's override file that still grants `~/.XCompose` is reset before the other
   layers are applied again.
 - `roles/update` (after `repos`, before anything that builds modules or installs packages):
-  `dnf_config` into `/etc/dnf/dnf.conf` (replaced, not appended), full upgrade with `nobest`
+  `dnf_config` into `/etc/dnf/dnf.conf` (replaced, not appended); on EL with NVIDIA
+  (`kernel_keep_old`) the newest kernel in the repositories is compared with the newest
+  `kmod-nvidia-open` (`nvidia_kmod_hold_*`: the module's `kernel(...)` requires against the
+  kernel packages' provides, weak-modules' test), and the upgrade excludes the kernel packages
+  when the module cannot load on it; full upgrade with `nobest`
   (RPM Fusion's freeworld builds pin their EPEL library's exact version; EL's `best=True` would
   fail the run until RPM Fusion rebuilds, so the library is held back instead), then the reboot
   gate: `dnf needs-restarting -r` rc 1, or the newest installed `kernel-core` is not the running
@@ -297,14 +301,41 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   signed `linux-modules-nvidia-NNN-open-generic`, which provide `nvidia-dkms-NNN-open`: nothing
   is built), bumped on purpose; a literal, since `pick.py` reads the catalog untemplated.
 - `roles/nvidia` (after `packages`): power options in `nvidia_modprobe_conf`
-  (`group_vars/family_*/main.yml`: `/etc/modprobe.d/nvidia.conf` on Fedora,
-  `/etc/modprobe.d/alpi-nvidia.conf` on apt, where the packages bring their own modprobe files,
-  Debian's `nvidia.conf` among them) for `nvidia_module` (`nvidia`; `nvidia-current` in
-  `group_vars/os_Debian`, which renames it); when no module exists for the running kernel,
-  akmods rebuild + `dracut`, or `dkms autoinstall` where `kmod_signer` is `dkms`. Runs only when
-  the `nvidia-driver` id is selected (NVIDIA detected, Fedora, Debian or Ubuntu, not skipped).
+  (`/etc/modprobe.d/nvidia.conf` on Fedora, `group_vars/os_Fedora`; `/etc/modprobe.d/alpi-nvidia.conf`
+  on EL, `group_vars/os_AlmaLinux_10`, and on apt, `group_vars/family_Debian`, where the packages
+  bring their own modprobe files: AlmaLinux's `/usr/lib/modprobe.d/nvidia.conf` with the nouveau
+  blacklist, which a same-named file in `/etc` would mask, Debian's `nvidia.conf`) for
+  `nvidia_module` (`nvidia`; `nvidia-current` in `group_vars/os_Debian`, which renames it); when
+  no module exists for the running kernel, akmods rebuild + `dracut`, or `dkms autoinstall` where
+  `kmod_signer` is `dkms`; where it is `none` (AlmaLinux's prebuilt `kmod-nvidia-open`, from
+  `almalinux-nvidia`) the missing module is only reported. Runs only when the `nvidia-driver` id
+  is selected (NVIDIA detected, not skipped). EL only (`group_vars/all/nvidia.yml`, all off
+  except in `group_vars/os_AlmaLinux_10`; PROPOSAL "Decisions (2026-11-17)"): `kwin_igpu.yml`
+  (`nvidia_kwin_igpu`: with an NVIDIA GPU and `is_intel_panel`, or `nvidia_kwin_igpu_force` on a
+  desktop, the udev rule `61-igpu-card.rules` linking the i915/xe card to `/dev/dri/igpu-card`,
+  `udevadm` reload + trigger + settle when a rule changed or a link is missing, then
+  `KWIN_DRM_DEVICES=/dev/dri/igpu-card` in `/etc/environment`, other such lines removed;
+  `nvidia_kwin_dgpu` (off) adds `61-nvidia-card.rules` and `:/dev/dri/nvidia-card` once that link
+  exists; no iGPU link: ALPI's line goes and the run fails; not hybrid: rules and ALPI's lines
+  removed; driver selected or not), `tools.yml` (`prime-run`, `alpi-nvidia-check` (acceptance
+  checks, PASS/FAIL per line; `nvidia_acceptance_check`) and `nvidia-kmod-check` in
+  `/usr/local/bin` from `files/`, removed
+  when the driver is not selected; the check run with a warning; `nvidia_kernel_versionlock`,
+  off: `dnf versionlock add` of the installed `nvidia_kernel_versionlock_packages`, never
+  released), `switcheroo.yml` (tag `switcheroo`: the service, when `switcheroo-control` resolved,
+  EL's `nvidia-switcheroo`), then a reboot reminder (installed module not loaded, or KWin's
+  setting changed). The check also runs at `roles/update`'s reboot gate (`removes:`, so only
+  once installed) and in EL's `full-update` (`zsh_full_update_kmod_check`); `roles/boot` keeps
+  older kernels while it applies (`kernel_keep_old`, `group_vars/all/boot.yml`). Another driver
+  source's packages (`nvidia_foreign_packages` globs minus `nvidia_foreign_packages_allowed`,
+  `alpi_nvidia_foreign` over `rpm -qa`) stop the run in `resolve.yml` when the driver is selected.
 - Hardware features (`alpi_hardware_features`: nvidia, asus, intel, amd) follow detection and can
-  only be vetoed; their packages come from `feature_packages`.
+  only be vetoed; their packages come from `feature_packages`. NVIDIA counts as not detected when
+  every NVIDIA GPU predates Turing (`is_nvidia_pre_turing`, from the device ids of `lspci -nn`,
+  `alpi_nvidia_pre_turing`) and the distro's driver has only open modules
+  (`nvidia_open_modules_only`: AlmaLinux 10), with a message (`alpi_nvidia_unsupported`).
+  `is_intel_panel` (only looked up with NVIDIA): an i915/xe card in `/sys/class/drm` with an eDP
+  connector, i.e. a hybrid laptop whose built-in panel hangs off the iGPU.
 - `roles/common`: hostname (only when `system_hostname` is set) and the git
   identity/defaults in the user's `~/.gitconfig` (`group_vars/all/machine.yml`, values from
   `bootstrap.yml`; validated in `env_setup.yml`).
@@ -379,20 +410,27 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     its `host_vars/`, via `shared/verify_resolution.yml`. Update those when the catalog or package lists change, after
     reviewing the diff; also the AI tools' upstream URLs, `roles/ai_tools/tasks/check.yml`),
     `fedora44-personal`, `fedora45-personal` (the same settings and `verify.yml` on Fedora 45),
-    `el10-work` (real installs, heaviest apps skipped;
+    `el10-work` (real installs, heaviest apps skipped, AlmaLinux's NVIDIA driver installed on a
+    kernel its `prepare.yml` installs first (`kernel-core`, `kernel-modules`); a hybrid laptop:
+    stand-in `/dev/dri/igpu-card` and `nvidia-card` links (no udevd), `nvidia_kwin_dgpu` on, and
+    a stale `KWIN_DRM_DEVICES` replaced by both cards, `prime-run` (its EGL file is the driver's),
+    `alpi-nvidia-check` runs to the end (rc 1, no GPU), `nvidia-kmod-check` OK on the installed
+    kernel, `nvidia_kernel_versionlock` on, `kernel_keep_old`;
     `shared/verify_installed.yml` checks everything resolved is installed; `el10-work` also
     resolves with EL10's own ansible-core 2.16 inside the container,
     `shared/verify_native_controller.yml`, and its `prepare.yml` writes AAPI's repository files
     first: each vendor base URL must end up in one file only; both keep their settings in a host_vars directory,
     `host_vars/<instance>/{custom,selection}.yml`, like a real machine, and check that both
     files' layers apply), `failures` (every validation must fail with its message,
-    `shared/expect_failure.yml`; Fedora + Alma + Debian 13; a case's `upstream_sources` goes through
-    set_fact, saved and restored; its `prepare.yml` builds a freeworld stand-in that cannot be
+    `shared/expect_failure.yml`; Fedora + Alma + Debian 13; NVIDIA and `is_intel_panel` pinned
+    on; a case's `upstream_sources` and `nvidia_foreign_packages` go through
+    set_fact, saved and restored, `nvidia_role` runs `roles/nvidia` (the iGPU link that never
+    appears); its `prepare.yml` builds a freeworld stand-in that cannot be
     installed, `shared/pinned_pair.yml` (a local apt repository with the same pair on Debian);
     the unreadable source on apt is an unreachable `.list`, and both package managers' messages
-    start the same, so a case has one `expect`), `flags` (env_setup on Fedora 44 with the hardware flags as
+    start the same, so a case has one `expect`), `flags` (env_setup on Fedora 44 and AlmaLinux 10 with the hardware flags as
     key=value extra vars, i.e. strings: `is_nvidia=true` turns NVIDIA on, `=false` keeps the
-    others off), `debian13` (env_setup + resolution on Debian 13; golden values like `catalog`;
+    others off; `is_nvidia_pre_turing=true` turns it off on AlmaLinux only), `debian13` (env_setup + resolution on Debian 13; golden values like `catalog`;
     `roles/repos`, then every name of the golden set checked with apt, nothing installed),
     `debian13-personal` (`site.yml` on Debian 13, skipping what `fedora44-personal` skips: real
     installs as in `fedora44-personal`, Steam with its i386 libraries; `prepare.yml` holds the dpkg lock
@@ -418,13 +456,21 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `secureboot` (env_setup + `akmods_mok`, `virtualbox`, `nvidia`, nothing downloaded; converge
     renames EL's VirtualBox and Fedora's NVIDIA native packages, so the roles must gate on ids; Secure Boot
     detected from a fake EFI variable mounted over `/sys/firmware`: Fedora with Secure Boot and
-    NVIDIA vetoed, Fedora without (and VirtualBox off: a stale `alpi-kvm.conf` removed), EL with,
+    NVIDIA vetoed, Fedora without (and VirtualBox off: a stale `alpi-kvm.conf` removed), EL with (NVIDIA's
+    options in `alpi-nvidia.conf`, a stand-in for AlmaLinux's `/usr/lib/modprobe.d/nvidia.conf`
+    left unmasked, no key for the prebuilt modules; `is_intel_panel` pinned on everywhere: EL
+    gets the udev rule, `KWIN_DRM_DEVICES` (a stale line replaced; a stand-in link), `prime-run`
+    and `nvidia-kmod-check`, the other distros none of it; tag `switcheroo` skipped),
     Debian with (DKMS key and Oracle key both enrolled, NVIDIA options for `nvidia-current`, a
     stand-in for Debian's own `nvidia.conf` left alone), Ubuntu 26.04 and 24.04 with (one shim-signed key,
     requested once for DKMS and VirtualBox); fake `mokutil` in `files/` (state per key), real
     `kmodgenca`/`dkms`/`update-secureboot-policy`/openssl),
     `services` (env_setup + service roles on `almalinux/10-init` with systemd; prepare installs
-    the packages: freshclam enabled and running, and skipped cleanly when its id is skipped; on
+    the packages: freshclam enabled and running, and skipped cleanly when its id is skipped;
+    NVIDIA pinned on: switcheroo-control enabled and running on EL, left alone where
+    `nvidia-switcheroo` is skipped or resolves to nothing (Debian); KWin on the iGPU on desktops
+    (`is_intel_panel` off): forced by `nvidia_kwin_igpu_force` on alpi-svc-on, an earlier run's
+    rules and two-device line removed on alpi-svc-skip; on
     Debian 13 too, built from `shared/Dockerfile-systemd-apt.j2`, the systemd image for any apt
     instance that needs services: Debian and Ubuntu publish no init image),
     `asus` (env_setup + `roles/asus` on Fedora 44 with systemd, built from the scenario's
@@ -436,12 +482,15 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     stand-in pinned to its library while a newer library is available, `shared/pinned_pair.yml`:
     the upgrade holds the library back; Debian 13, group `apt`: a local repository offers 2.0 of
     an installed stand-in, which every instance upgrades, and a `dpkg-query` wrapper names the
-    newest kernel: no reboot, reboot by `/run/reboot-required`, reboot by a newer kernel),
+    newest kernel: no reboot, reboot by `/run/reboot-required`, reboot by a newer kernel; both
+    EL instances check the kernel/module fit against stand-ins, `alpi-test-kernel` 1.0 installed
+    and 2.0 with a changed `kernel(...)` symbol: held at 1.0 on el10-reboot, upgraded on el10-fit),
     `memory` (env_setup + `roles/memory` +
     `tasks/reminders.yml`, `zram_apply` skipped; a `swapon` wrapper and a zswap file script the
     swap state per instance: no swap, Fedora's zram0 with `zram_size`, zswap on, `zram: false`
     after a run, the user's own config; Debian 13, group `apt`: no swap, and `zram: false` after
-    a run), `boot` (`roles/boot` on Fedora + Alma;
+    a run), `boot` (`roles/boot` on Fedora + Alma, and Alma with `kernel_keep_old`: both stand-in
+    versions kept;
     stand-in installonly packages and a debug kernel built with rpmbuild into a local repository
     whose id has 'debug', `/etc/default/grub` and a logging `grub2-mkconfig`; Debian 13, group
     `apt`: the values grub-mkconfig would source from `/etc/default/grub` and `grub.d`, with an
@@ -471,7 +520,7 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     agent's link on GNOME only, `/root/alpi-openlogi-agent-needed`). That recipe
     is the way to test any user-specific step (root and the user differ there).
   - `fedora44-personal` and `el10-work` have no systemd: they skip service roles by tag
-    (`skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory`; `memory` because a
+    (`skip-tags: molecule-notest,notest,clamav,supergfxd,switcheroo,update,memory`; `memory` because a
     container sees the host's swap; setting skip-tags replaces
     Molecule's default, so its own tags are repeated). Add each new service task's tag there;
     tag the service step alone when the rest of the role can run without systemd (as in
@@ -482,9 +531,9 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     `extra_opts`) and checks the static hostname; the transient one is left to the VM.
   - Extra vars win over set_fact, so detected hardware is pinned with
     `provisioner.options.extra-vars`: all false in `.config/molecule/config.yml`. A scenario that
-    sets its own `extra-vars` replaces that string, so it lists all four (`is_nvidia`, `is_asus`,
-    `is_intel`, `is_amd`). Never let a scenario detect hardware: `lspci` in a rootless container
-    sees the host's GPU once `pciutils` is installed.
+    sets its own `extra-vars` replaces that string, so it lists all six (`is_nvidia`,
+    `is_nvidia_pre_turing`, `is_intel_panel`, `is_asus`, `is_intel`, `is_amd`). Never let a scenario detect hardware: `lspci` in a rootless container
+    sees the host's GPU once `pciutils` is installed, and `/sys/class/drm` is the host's.
   - Images are bare: `shared/prepare.yml` installs python3 and sudo; the podman connection runs
     `raw` without a shell (wrap in `sh -c`). Bare Fedora lacks the Python rpm bindings, so verify
     with `rpm -q --whatprovides` (`shared/verify_installed.yml`; `dpkg-query` status `ii` on

@@ -204,9 +204,57 @@ class TestFeatures:
     def test_feature_ids_ignore_unknown_flags(self):
         assert alpi.alpi_feature_ids({"x": ["a"]}, {}) == []
 
+    # `lspci -nn` display lines, as env_setup's gpu_info holds them
+    MX450 = "01:00.0 3D controller [0302]: NVIDIA Corporation TU117M [GeForce MX450] [10de:1f97] (rev a1)"
+    GTX1060 = "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP106 [GeForce GTX 1060 6GB] [10de:1c03] (rev a1)"
+    GTX970 = "02:00.0 VGA compatible controller [0300]: NVIDIA Corporation GM204 [GeForce GTX 970] [10de:13c2] (rev a1)"
+    TITANV = "03:00.0 VGA compatible controller [0300]: NVIDIA Corporation GV100 [TITAN V] [10de:1d81] (rev a1)"
+    RTX3060 = "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GA106 [GeForce RTX 3060] [10de:2503] (rev a1)"
+    GTX1650 = "01:00.0 VGA compatible controller [0300]: NVIDIA Corporation TU117 [GeForce GTX 1650] [10de:1f82] (rev a1)"
+    INTEL = "00:02.0 VGA compatible controller [0300]: Intel Corporation TigerLake-LP GT2 [Iris Xe Graphics] [8086:9a49] (rev 01)"
+
+    @pytest.mark.parametrize("lines, expected", [
+        ([GTX1060], True),
+        ([GTX970], True),
+        ([TITANV], True),
+        ([INTEL, GTX1060], True),     # an Optimus laptop with a Pascal GPU
+        ([MX450], False),
+        ([GTX1650], False),
+        ([RTX3060], False),
+        ([INTEL, MX450], False),
+        ([GTX970, RTX3060], False),   # one GPU the open modules drive is enough
+        ([INTEL], False),             # no NVIDIA GPU: nothing to skip
+        ([], False),
+    ])
+    def test_nvidia_pre_turing(self, lines, expected):
+        assert alpi.alpi_nvidia_pre_turing("\n".join(lines)) is expected
+
+    def test_nvidia_pre_turing_without_ids(self):
+        # Plain `lspci` (no -nn) carries no ids: never a reason to skip
+        assert alpi.alpi_nvidia_pre_turing("01:00.0 VGA compatible controller: NVIDIA Corporation GP106") is False
+        assert alpi.alpi_nvidia_pre_turing(None) is False
+
+    # group_vars/os_AlmaLinux_10's patterns: RPM Fusion's, NVIDIA's CUDA repository's DKMS builds
+    FOREIGN = ["akmod-nvidia*", "xorg-x11-drv-nvidia*", "kmod-nvidia-latest-dkms",
+               "kmod-nvidia-open-dkms", "nvidia-kmod*"]
+
+    @pytest.mark.parametrize("installed, expected", [
+        # AlmaLinux's own driver (nvidia-kmod-common is its dependency) and the firmware
+        ("nvidia-open-kmod\nkmod-nvidia-open\nnvidia-driver\nnvidia-driver-libs\nnvidia-kmod-common\n"
+         "nvidia-driver-cuda\nnvidia-gpu-firmware\nlibva-nvidia-driver\n", []),
+        ("akmod-nvidia\nxorg-x11-drv-nvidia\nxorg-x11-drv-nvidia-cuda-libs\nbash\n",
+         ["akmod-nvidia", "xorg-x11-drv-nvidia", "xorg-x11-drv-nvidia-cuda-libs"]),
+        ("kmod-nvidia-latest-dkms\nnvidia-kmod-common\n", ["kmod-nvidia-latest-dkms"]),
+        (["nvidia-kmod-open-dkms", "kmod-nvidia-open-dkms"], ["kmod-nvidia-open-dkms", "nvidia-kmod-open-dkms"]),
+        ("", []),
+        (None, []),
+    ])
+    def test_nvidia_foreign(self, installed, expected):
+        assert alpi.alpi_nvidia_foreign(installed, self.FOREIGN, ["nvidia-kmod-common"]) == expected
+
     def test_filters_are_registered(self):
         assert set(alpi.FilterModule().filters()) == {
-            "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_repos", "alpi_feature_ids",
+            "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_nvidia_pre_turing", "alpi_nvidia_foreign", "alpi_repos", "alpi_feature_ids",
             "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name", "alpi_pipx_plan",
             "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing", "alpi_upstream_package_current",
             "alpi_release_headers",

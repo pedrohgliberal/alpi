@@ -1,0 +1,4 @@
+---
+# What group_vars/all/boot.yml resolves to on EL once the NVIDIA driver is selected (checked in
+# el10-work, which installs it)
+kernel_keep_old: true

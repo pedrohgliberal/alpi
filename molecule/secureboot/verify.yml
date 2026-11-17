@@ -74,11 +74,23 @@
         quiet: true
       when: inventory_hostname == 'alpi-nosb-fedora44'
 
-    - name: Verify | Secure Boot on EL - Oracle VirtualBox key, nothing NVIDIA
+    - name: Verify | Read NVIDIA's options and the vendor file (EL)
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      loop: [/etc/modprobe.d/alpi-nvidia.conf, /usr/lib/modprobe.d/nvidia.conf]
+      register: _sb_el_conf
+      when: inventory_hostname == 'alpi-sb-el10'
+
+    # kmod_signer none: AlmaLinux's NVIDIA modules come prebuilt and signed, so no key for them
+    # (only Oracle's) and no /etc/modprobe.d/nvidia.conf masking the vendor's
+    - name: Verify | Secure Boot on EL - Oracle VirtualBox key, NVIDIA options in ALPI's file
       ansible.builtin.assert:
         that:
-          - is_secure_boot
+          - is_secure_boot and alpi_feature.nvidia and 'nvidia-driver' in alpi_ids_selected
           - _oracle_key and _oracle_priv_mode == '0600' and not _akmods_key and not _nvidia_conf
+          - not _files.results[5].stat.exists
+          - "'options nvidia NVreg_DynamicPowerManagement=0x02' in (_sb_el_conf.results[0].content | b64decode)"
+          - (_sb_el_conf.results[1].content | b64decode) == 'blacklist nouveau\nblacklist nova-core\n'
           - _imports == ['--import /var/lib/shim-signed/mok/MOK.der']
           - "'password: alma-alpi / alma-alpi' in _mok_log.stdout_lines"
         fail_msg: "mokutil log: {{ _mok_log.stdout_lines | default([]) }}"
@@ -123,3 +135,51 @@
         fail_msg: "mokutil log: {{ _mok_log.stdout_lines | default([]) }}"
         quiet: true
       when: inventory_hostname == 'alpi-sb-debian13'
+
+    # group_vars/all/nvidia.yml: EL only. is_intel_panel is pinned true on every instance, so
+    # Fedora, Debian and Ubuntu (NVIDIA on, a hybrid laptop) must get none of it
+    - name: Verify | Look up the EL NVIDIA extras
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: [/etc/udev/rules.d/61-igpu-card.rules, /usr/local/bin/prime-run, /usr/local/bin/nvidia-kmod-check]
+      register: _sb_extras
+
+    - name: Verify | Read /etc/environment
+      ansible.builtin.command: cat /etc/environment
+      register: _sb_env
+      changed_when: false
+      failed_when: false
+
+    - name: Verify | Read the udev rule and prime-run (EL)
+      ansible.builtin.slurp:
+        src: "{{ item }}"
+      loop: [/etc/udev/rules.d/61-igpu-card.rules, /usr/local/bin/prime-run]
+      register: _sb_el_extras
+      when: inventory_hostname == 'alpi-sb-el10'
+
+    # The stale line gave way; prime-run and the check are root 0755. No kernel here: the check
+    # runs and warns (no kernel-core), which must not fail the run.
+    - name: Verify | EL - KWin on the iGPU, prime-run, the kernel/module check
+      ansible.builtin.assert:
+        that:
+          - _sb_extras.results | map(attribute='stat.exists') | list == [true, true, true]
+          - _sb_extras.results[1].stat.mode == '0755' and _sb_extras.results[1].stat.pw_name == 'root'
+          - _sb_extras.results[2].stat.mode == '0755'
+          - _sb_env.stdout_lines == ['LANG=en_US.UTF-8', 'KWIN_DRM_DEVICES=/dev/dri/igpu-card']
+          - (_sb_el_extras.results[0].content | b64decode) == (lookup('file', _role_files ~ '/61-igpu-card.rules') ~ '\n')
+          - (_sb_el_extras.results[1].content | b64decode) == (lookup('file', _role_files ~ '/prime-run') ~ '\n')
+          - "'SYMLINK+=\"dri/igpu-card\"' in (_sb_el_extras.results[0].content | b64decode)"
+        fail_msg: "extras: {{ _sb_extras.results | map(attribute='stat.exists') | list }}, environment: {{ _sb_env.stdout_lines }}"
+        quiet: true
+      vars:
+        _role_files: "{{ playbook_dir }}/../../roles/nvidia/files"
+      when: inventory_hostname == 'alpi-sb-el10'
+
+    - name: Verify | Fedora, Debian, Ubuntu - none of EL's NVIDIA extras
+      ansible.builtin.assert:
+        that:
+          - _sb_extras.results | map(attribute='stat.exists') | list == [false, false, false]
+          - "'KWIN_DRM_DEVICES' not in _sb_env.stdout"
+        fail_msg: "extras: {{ _sb_extras.results | map(attribute='stat.exists') | list }}, environment: {{ _sb_env.stdout_lines }}"
+        quiet: true
+      when: inventory_hostname != 'alpi-sb-el10'

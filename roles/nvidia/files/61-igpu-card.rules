@@ -1,0 +1,2 @@
+# Stable symlink for the integrated GPU (used by KWIN_DRM_DEVICES)
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="i915|xe", SYMLINK+="dri/igpu-card"

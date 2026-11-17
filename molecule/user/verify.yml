@@ -111,7 +111,7 @@
 
     # Each alias on its own line, single-quoted (a folded join once wrote a literal backslash-n
     # between layers, putting them on the previous layer's last line). claudecli needs Claude Code
-    # (off on KDE), nvidia-run the NVIDIA driver (GNOME only).
+    # (off on KDE), nvidia-run the NVIDIA driver (everywhere but KDE, which vetoes it).
     - name: Verify | The user gets the aliases that are on and installed, and the API keys block
       ansible.builtin.assert:
         that:
@@ -133,7 +133,7 @@
                         + (['open-backup', 'close-backup'] if _desktop == 'KDE' else []))
                        | reject('in', {'GNOME': ['clean-cache'], 'KDE': ['ohmyzsh', 'claudecli', 'open-thevoid']}[_desktop] | default([]))
                        | reject('in', [] if inventory_hostname in _nvidia_hosts else ['nvidia-run']) | list }}"
-        _nvidia_hosts: [alpi-user-gnome, alpi-user-debian13, alpi-user-ubuntu2604, alpi-user-ubuntu2404]
+        _nvidia_hosts: [alpi-user-gnome, alpi-user-el10, alpi-user-debian13, alpi-user-ubuntu2604, alpi-user-ubuntu2404]
 
     # Checked when it runs, not at install time: the same alias everywhere (KDE has no Claude Code)
     - name: Verify | full-update runs each updater when its command is in PATH
@@ -363,11 +363,11 @@
       vars:
         _text: "{{ (_steam_files.results[0].content | b64decode) if _steam.stat.exists else '' }}"
 
-    - name: Verify | The nvidia-run alias only where NVIDIA is on (GNOME, Debian, Ubuntu)
+    - name: Verify | The nvidia-run alias only where NVIDIA is on (all but KDE, which vetoes it)
       ansible.builtin.assert:
         that: >-
           ("alias nvidia-run='" ~ _steam_prime ~ "'" in _steam_rc)
-          == (inventory_hostname in ['alpi-user-gnome', 'alpi-user-debian13', 'alpi-user-ubuntu2604', 'alpi-user-ubuntu2404'])
+          == (inventory_hostname in ['alpi-user-gnome', 'alpi-user-el10', 'alpi-user-debian13', 'alpi-user-ubuntu2604', 'alpi-user-ubuntu2404'])
         fail_msg: "{{ _steam_rc }}"
         quiet: true
       vars:

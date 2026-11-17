@@ -61,6 +61,56 @@
       register: _pinned_install
       changed_when: "'Nothing to do' not in _pinned_install.stdout"
 
+    # EL's kernel/module fit (roles/update, nvidia_kmod_hold_*, host_vars point them here): kernel
+    # 1.0 installed, 2.0 in the repository with a changed symbol, and a module package requiring
+    # the symbol of _test_kmod_symbol's kernel (0x1: only 1.0 fits, 0x2: 2.0 fits)
+    - name: Prepare | Kernel and module stand-ins
+      when: _test_kmod_symbol is defined
+      vars:
+        _kmod_rpms:
+          - {name: alpi-test-kernel, version: "1.0", deps: "Provides: kernel(alpi_test_sym) = 0x1"}
+          - {name: alpi-test-kernel, version: "2.0", deps: "Provides: kernel(alpi_test_sym) = 0x2"}
+          - {name: alpi-test-kmod, version: "1.0", deps: "Requires: kernel(alpi_test_sym) = {{ _test_kmod_symbol }}"}
+      block:
+        - name: Prepare | Stand-in directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop: [/opt/alpi-kmod/specs, /opt/alpi-kmod/repo]
+
+        - name: Prepare | Stand-in spec files
+          ansible.builtin.copy:
+            dest: "/opt/alpi-kmod/specs/{{ item.name }}-{{ item.version }}.spec"
+            content: |
+              Name: {{ item.name }}
+              Version: {{ item.version }}
+              Release: 1
+              Summary: ALPI test stand-in
+              License: GPL-3.0-or-later
+              BuildArch: noarch
+              {{ item.deps }}
+              %description
+              ALPI test stand-in for a kernel and its prebuilt module.
+              %files
+            mode: "0644"
+          loop: "{{ _kmod_rpms }}"
+          loop_control:
+            label: "{{ item.name }}-{{ item.version }}"
+
+        - name: Prepare | Build the stand-ins and their repository
+          ansible.builtin.shell: |
+            set -e
+            for s in /opt/alpi-kmod/specs/*.spec; do
+                rpmbuild -bb --define '_rpmdir /opt/alpi-kmod/repo' "$s" >/dev/null
+            done
+            createrepo_c /opt/alpi-kmod/repo >/dev/null
+            printf '[alpi-test-kmod]\nname=ALPI test stand-ins (kernel and module)\nbaseurl=file:///opt/alpi-kmod/repo\nenabled=1\ngpgcheck=0\n' > /etc/yum.repos.d/alpi-test-kmod.repo
+            dnf -y install /opt/alpi-kmod/repo/noarch/alpi-test-kernel-1.0-1.noarch.rpm >/dev/null
+          args:
+            executable: /bin/bash
+            creates: /etc/yum.repos.d/alpi-test-kmod.repo
+
     # The role must replace an existing value, not add a second line (AFPI appended)
     - name: Prepare | Outdated dnf setting
       ansible.builtin.lineinfile:

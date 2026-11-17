@@ -6,6 +6,8 @@
 # alpi-test-kernel and the debug kernel, and disable the repository. A /etc/default/grub and a
 # grub2-mkconfig that only logs its calls stand in for GRUB: the settings are written and the
 # config regenerated once (not again on the idempotence run).
+# alpi-boot-el10-keep: kernel_keep_old (EL with AlmaLinux's NVIDIA driver, whose prebuilt modules
+# may lag behind a new kernel): both alpi-test-kernel versions stay, the debug kernel still goes.
 # Debian 13 (group apt): no kernel maintenance (apt's
 # autoremove's job); the settings go to /etc/default/grub.d/99-alpi.cfg, which must win over
 # /etc/default/grub and an Ubuntu-style grub.d file hiding the menu, and update-grub (a logging
@@ -21,6 +23,11 @@ platforms:
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-boot-el10:/var/cache/dnf"]
+  - name: alpi-boot-el10-keep
+    image: docker.io/library/almalinux:10
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-boot-el10-keep:/var/cache/dnf"]
   - name: alpi-boot-debian13
     image: docker.io/library/debian:13
     pre_build_image: true

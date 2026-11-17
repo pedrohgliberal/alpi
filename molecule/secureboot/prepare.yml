@@ -29,6 +29,46 @@
             content: "install nvidia modprobe -i nvidia-current $CMDLINE_OPTS\n"
             mode: "0644"
 
+    # What AlmaLinux's nvidia-kmod-common ships (a stand-in): a file of the same name in /etc
+    # would mask it, and with it the nouveau blacklist
+    - name: Prepare | AlmaLinux's own nvidia.conf
+      when: inventory_hostname == 'alpi-sb-el10'
+      block:
+        - name: Prepare | Create /usr/lib/modprobe.d (EL)
+          ansible.builtin.file:
+            path: /usr/lib/modprobe.d
+            state: directory
+            mode: "0755"
+
+        - name: Prepare | Write the vendor stand-in
+          ansible.builtin.copy:
+            dest: /usr/lib/modprobe.d/nvidia.conf
+            content: "blacklist nouveau\nblacklist nova-core\n"
+            mode: "0644"
+
+    # A hybrid laptop (is_intel_panel pinned true): a container runs no udevd, so the link the
+    # udev rule would make stands in, and an older KWIN_DRM_DEVICES line must give way to ALPI's
+    - name: Prepare | The iGPU's card link and a stale KWin setting (EL)
+      when: inventory_hostname == 'alpi-sb-el10'
+      block:
+        - name: Prepare | Create /dev/dri
+          ansible.builtin.file:
+            path: /dev/dri
+            state: directory
+            mode: "0755"
+
+        - name: Prepare | Link the stand-in card
+          ansible.builtin.file:
+            src: /dev/null
+            dest: /dev/dri/igpu-card
+            state: link
+
+        - name: Prepare | Write a stale KWIN_DRM_DEVICES
+          ansible.builtin.copy:
+            content: "LANG=en_US.UTF-8\nKWIN_DRM_DEVICES=/dev/dri/card0\n"
+            dest: /etc/environment
+            mode: "0644"
+
     - name: Prepare | Plant a stale kvm setting where VirtualBox is off
       when: inventory_hostname == 'alpi-nosb-fedora44'
       block:

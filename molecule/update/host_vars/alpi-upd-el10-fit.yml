@@ -1,0 +1,8 @@
+---
+_test_needs_restarting_rc: 0
+# Kernel/module fit (roles/update): the module requires 2.0's symbol, so the kernel upgrades
+_test_kmod_symbol: "0x2"
+kernel_keep_old: true
+nvidia_kmod_hold_kernel: alpi-test-kernel
+nvidia_kmod_hold_module: alpi-test-kmod
+nvidia_kmod_hold_packages: [alpi-test-kernel]

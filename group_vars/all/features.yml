@@ -5,6 +5,9 @@
 # Unknown names stop the run.
 # Hardware features take 'auto' (on when detected) or false (veto); they are never forced on.
 alpi_hardware_features: [nvidia, asus, intel, amd]
+# The distro's NVIDIA driver has only open kernel modules (Turing and newer): an older NVIDIA GPU
+# turns the nvidia feature off with a message (tasks/resolve.yml). True on AlmaLinux 10.
+nvidia_open_modules_only: false
 
 features_default:
   nvidia: auto
@@ -27,5 +30,5 @@ feature_packages:
   asus: [asusctl, supergfxctl, asusctl-rog-gui]
   intel: [libva-intel-driver, intel-media-driver]
   amd: [mesa-va-drivers-freeworld, libva-utils, vdpauinfo]
-  nvidia: [nvidia-driver, nvidia-build, nvidia-vulkan, nvidia-vaapi]
+  nvidia: [nvidia-driver, nvidia-build, nvidia-vulkan, nvidia-vaapi, nvidia-switcheroo, nvidia-check-tools]
 

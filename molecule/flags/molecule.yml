@@ -3,15 +3,22 @@
 # and win over env_setup's set_fact. "true" must turn NVIDIA on (and `when: is_nvidia` must not
 # trip ansible-core 2.19+'s string conditionals); "false" must keep ASUS, Intel and AMD off
 # (bool("false") is True). Resolution only (env_setup), nothing installed.
+# The GPU is pinned older than Turing ("true", a string too): Fedora's driver drives it (NVIDIA
+# stays on), AlmaLinux's has only open modules (nvidia_open_modules_only), so NVIDIA turns off there.
 platforms:
   - name: alpi-flags-fedora44
     image: registry.fedoraproject.org/fedora:44
     pre_build_image: true
     command: sleep infinity
     volumes: ["alpi-dnf-flags-fedora44:/var/cache/libdnf5"]
+  - name: alpi-flags-el10
+    image: docker.io/library/almalinux:10
+    pre_build_image: true
+    command: sleep infinity
+    volumes: ["alpi-dnf-flags-el10:/var/cache/dnf"]
 provisioner:
   options:
     # key=value on purpose (strings), not the JSON booleans of the base config
-    extra-vars: "is_nvidia=true is_asus=false is_intel=false is_amd=false"
+    extra-vars: "is_nvidia=true is_nvidia_pre_turing=true is_intel_panel=false is_asus=false is_intel=false is_amd=false"
   playbooks:
     converge: converge.yml

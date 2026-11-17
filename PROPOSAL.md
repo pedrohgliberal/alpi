@@ -496,3 +496,98 @@ Checked in `debian:13` and `ubuntu:26.04` containers on 2026-10-24: NVIDIA, Virt
    user unit, not enabled; the app's "Launch at login" switch enables the same unit. ALPI does
    not enable it (it would undo the user's switch on every run): `tasks/reminders.yml` reminds
    when the user's `graphical-session.target.wants` link is missing.
+
+## Decisions (2026-11-16)
+
+1. **NVIDIA on AlmaLinux 10 from AlmaLinux's own repository.** `almalinux-nvidia` ("AlmaLinux
+   10 - NVIDIA Driver & CUDA"), enabled by `almalinux-release-nvidia-driver` from extras (a
+   `package` repository in `roles/repos`), ships the driver (620.70.06 on 2026-11-16) with
+   prebuilt open modules signed by AlmaLinux: `nvidia-open-kmod` (→ `kmod-nvidia-open`),
+   `nvidia-driver`, `nvidia-driver-cuda` (`nvidia-smi`). Nothing is built (`nvidia-build` is
+   `[]` on EL, `kmod_signer` stays `none`); the Vulkan ICD is in `nvidia-driver-libs`, which the
+   driver pulls in (`nvidia-vulkan` `[]`); VA-API is EPEL's `libva-nvidia-driver`. The
+   repository is x86_64 only: no 32-bit libraries for Steam. RPM Fusion's EL repositories have
+   no NVIDIA packages, so nothing conflicts.
+2. **ALPI's options in their own file on EL.** `nvidia-kmod-common` ships
+   `/usr/lib/modprobe.d/nvidia.conf` (the nouveau blacklist and its power options); Fedora's
+   `/etc/modprobe.d/nvidia.conf` (AFPI's name) would mask it, so EL's `nvidia_modprobe_conf` is
+   `/etc/modprobe.d/alpi-nvidia.conf`, as on apt. The package's `nvidia-boot-update` edits
+   `GRUB_CMDLINE_LINUX` (`rd.driver.blacklist=nouveau`), which `roles/boot` does not manage.
+3. **No build step for prebuilt modules.** `roles/nvidia` reports a missing module for the
+   running kernel where `kmod_signer` is `none` (a kernel newer than AlmaLinux's
+   `kmod-nvidia-open`, which reaches same-ABI kernels through weak-updates) instead of building.
+4. **GPUs older than Turing are skipped where only open modules exist.** Open kernel modules
+   drive Turing and newer; the NVIDIA device id from `lspci -nn` tells the generation (everything
+   below `0x1e00` is Maxwell, Pascal or Volta: `alpi_nvidia_pre_turing`, true only when every
+   NVIDIA GPU is older). Where `nvidia_open_modules_only` is set (AlmaLinux 10), such a GPU counts
+   as not detected: the nvidia feature is off with a message and nouveau stays. Fedora and Debian
+   (proprietary modules) are unaffected; Ubuntu's pinned open branch has the same limit and can
+   set the flag once its fallback is decided (TODO section 9). `is_nvidia_pre_turing` is pinned
+   in Molecule with the other hardware flags.
+
+## Decisions (2026-11-17)
+
+AlmaLinux's NVIDIA driver on the reporting notebook (Intel iGPU + MX450, KDE Plasma 6 on
+Wayland): SDDM worked, then Plasma went black right after login. Fix found and checked there by
+hand, then brought into ALPI. Everything below is set in `group_vars/os_AlmaLinux_10`
+(defaults off in `group_vars/all/nvidia.yml`): Fedora, Debian and Ubuntu are untouched.
+
+1. **KWin on the iGPU of a hybrid laptop.** With `nvidia-drm` loaded, KWin took the NVIDIA card
+   as its primary DRM device; on an Optimus laptop the built-in panel hangs off the iGPU, so
+   that card has no screen. A udev rule (`/etc/udev/rules.d/61-igpu-card.rules`, `DRIVERS=="i915|xe"`)
+   names the iGPU's card `/dev/dri/igpu-card` and `/etc/environment` sets
+   `KWIN_DRM_DEVICES=/dev/dri/igpu-card` (other `KWIN_DRM_DEVICES` lines removed). Not `cardN`
+   (the numbering changes between boots) and not `/dev/dri/by-path` (its names hold `:`, the
+   variable's separator). When the link does not appear after `udevadm trigger`, the run stops
+   and the variable is removed: a missing device would leave KWin with no GPU. "Hybrid" is
+   `is_intel_panel` (env_setup): an i915/xe card with an eDP connector, so a desktop whose screens
+   hang off the NVIDIA card while the iGPU is enabled is not mistaken for a laptop. Applied
+   whenever such a GPU pair is there, driver selected or not (a vetoed driver leaves its packages
+   installed); removed when it is not. A desktop is left alone: its monitor usually hangs off the
+   NVIDIA card, and KWin on the iGPU would leave Plasma on a GPU with no screen; one whose monitor
+   is on the motherboard's port sets `nvidia_kwin_igpu_force` (custom.yml) instead of a detection
+   that would read the cabling at run time. External ports wired to the NVIDIA GPU stay dark with
+   the iGPU alone: `nvidia_kwin_dgpu` (off until tested on hardware) adds a second rule
+   (`61-nvidia-card.rules`, `DRIVERS=="nvidia"`, `/dev/dri/nvidia-card`) and lists that card
+   second (`KWIN_DRM_DEVICES=/dev/dri/igpu-card:/dev/dri/nvidia-card`; the first stays the
+   primary), only once its link exists (nvidia-drm loaded), so the run after the reboot adds it.
+2. **`prime-run`** (`/usr/local/bin`, root 0755; Arch's `nvidia-prime`, not packaged on EL) next
+   to the `nvidia-run` alias, while the driver is selected. Its EGL vendor file is the one
+   AlmaLinux's `nvidia-driver-libs` installs (`el10-work` checks the path); that EGL apps then
+   render on NVIDIA is not validated yet: if an app breaks under `prime-run`, removing the two
+   `egl_json` lines is the first thing to try. **`alpi-nvidia-check`** (`/usr/local/bin`; catalog
+   `nvidia-check-tools`: glx-utils, egl-utils, vulkan-tools) runs the acceptance checks after the
+   reboot, as the user inside Plasma, one PASS/FAIL line each: `nvidia-smi`, no nouveau, the iGPU
+   link and its driver, `KWIN_DRM_DEVICES` in `kwin_wayland`'s environment, and `prime-run` with
+   glxinfo, eglinfo (Wayland platform) and vulkaninfo (NVIDIA devices only). **switcheroo-control** (catalog `nvidia-switcheroo`, EL only: Fedora's desktops pull
+   it in) is enabled for Plasma's "Run using dedicated graphics card".
+3. **Kernels and prebuilt modules.** AlmaLinux's modules may come after a new kernel.
+   `/usr/local/bin/nvidia-kmod-check` says whether the newest installed `kernel-core` (the
+   package `roles/update`'s gate reads) has a module; `roles/nvidia` runs it, the reboot gate
+   adds its warning, and EL's `full-update` alias runs it before the reboot advice. `roles/boot`
+   keeps older kernels while the driver is selected (`kernel_keep_old`); dnf's
+   `installonly_limit`, never lowered by ALPI, prunes them. Before `roles/update`'s upgrade, the
+   newest kernel in the repositories is compared with the newest `kmod-nvidia-open`: when the
+   kernel lacks `kernel(...)` symbols the module requires (what `weak-modules` checks; the
+   package is kABI-tracking, so one build serves later kernels of the same ABI), the upgrade
+   excludes the kernel packages and says so, and a later run takes the kernel once AlmaLinux
+   publishes its module. The reboot gate therefore never meets a kernel without a module from
+   ALPI's own upgrade. Nothing is locked: a manual `dnf upgrade` still brings the kernel (the
+   `full-update` alias then warns). Optional `nvidia_kernel_versionlock`
+   (off) holds the installed kernel packages with `dnf versionlock`; turning it off does not
+   release them (`dnf versionlock delete kernel kernel-core kernel-modules kernel-modules-core`).
+4. **Never mix driver sources.** With the driver selected, `resolve.yml` stops the run when
+   packages from RPM Fusion (`akmod-nvidia*`, `xorg-x11-drv-nvidia*`) or NVIDIA's CUDA repository
+   (`kmod-nvidia-latest-dkms`, `kmod-nvidia-open-dkms`, `nvidia-kmod*` except AlmaLinux's own
+   `nvidia-kmod-common`) are installed, and names them (`alpi_nvidia_foreign`). ALPI removes
+   nothing, and never through a `*nvidia*` glob, which takes `nvidia-gpu-firmware` (needed by
+   `linux-firmware` and the kernel).
+5. **Undo, by hand** (ALPI undoes items 1 and 2 when they stop applying, but never removes the
+   driver):
+   ```sh
+   sudo sed -i '/^KWIN_DRM_DEVICES=/d' /etc/environment
+   sudo rm -f /etc/udev/rules.d/61-igpu-card.rules /etc/udev/rules.d/61-nvidia-card.rules
+   sudo rm -f /usr/local/bin/prime-run /usr/local/bin/nvidia-kmod-check /usr/local/bin/alpi-nvidia-check
+   sudo systemctl disable --now switcheroo-control
+   # the driver: dnf history undo <ID> of its install transaction, never a glob; then reboot
+   ```

@@ -5,13 +5,32 @@ packages_os: [libreoffice]
 
 # MOK enrollment password (see group_vars/all/secureboot.yml)
 mok_password: "alma-alpi"
-# No akmods: VirtualBox's vboxdrv.sh signs with roles/virtualbox's key, NVIDIA is unavailable
+# No akmods: VirtualBox's vboxdrv.sh signs with roles/virtualbox's key, and AlmaLinux's NVIDIA
+# modules come prebuilt, signed by AlmaLinux (whether their CA needs a MOK: TODO.md, section 9)
 kmod_signer: none
+# roles/nvidia: AlmaLinux's nvidia-kmod-common ships /usr/lib/modprobe.d/nvidia.conf (the nouveau
+# blacklist and its own power options); a file of that name in /etc would replace it
+nvidia_modprobe_conf: /etc/modprobe.d/alpi-nvidia.conf
+# Only open modules (kmod-nvidia-open): a GPU older than Turing turns the nvidia feature off
+nvidia_open_modules_only: true
+# group_vars/all/nvidia.yml: KWin on the iGPU of a hybrid laptop, prime-run, the kernel/module
+# check (roles/boot keeps older kernels while the driver is selected)
+nvidia_kwin_igpu: true
+nvidia_prime_run: true
+nvidia_acceptance_check: true
+nvidia_kmod_check: true
+# RPM Fusion's akmod driver and NVIDIA's CUDA repository (DKMS builds): never mixed with
+# AlmaLinux's. nvidia-kmod-common matches nvidia-kmod* but is AlmaLinux's driver's own.
+nvidia_foreign_packages: [akmod-nvidia*, xorg-x11-drv-nvidia*, kmod-nvidia-latest-dkms,
+                          kmod-nvidia-open-dkms, nvidia-kmod*]
+nvidia_foreign_packages_allowed: [nvidia-kmod-common]
 
+# The NVIDIA module check (roles/nvidia) before the reboot advice, when it is installed
+zsh_full_update_kmod_check: "[ ! -x /usr/local/bin/nvidia-kmod-check ] || /usr/local/bin/nvidia-kmod-check; "
 # dnf4: without -r, needs-restarting lists processes instead of saying whether to reboot
 zsh_aliases_os:
   full-update:
-    cmd: "flatpak update -y; {{ zsh_full_update_tools }}sudo dnf upgrade --refresh -y; dnf needs-restarting -r"
+    cmd: "flatpak update -y; {{ zsh_full_update_tools }}sudo dnf upgrade --refresh -y; {{ zsh_full_update_kmod_check }}dnf needs-restarting -r"
     description: Update the flatpaks, the AI tools and the system
 
 # DNF plugins (config-manager, copr, needs-restarting), installed first by roles/repos
@@ -32,6 +51,11 @@ alpi_repos_os:
   rpmfusion-nonfree:
     type: rpm
     url: "https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+  # AlmaLinux's NVIDIA driver and CUDA repository (almalinux-nvidia), from its release package in
+  # extras (catalog: nvidia-driver)
+  almalinux-nvidia:
+    type: package
+    name: almalinux-release-nvidia-driver
   # VirtualBox is not packaged for EL10 (catalog: virtualbox)
   virtualbox:
     type: yum

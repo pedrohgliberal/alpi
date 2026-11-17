@@ -7,8 +7,8 @@
 # group_vars/os_Debian and "ubuntu-alpi" in group_vars/os_Ubuntu. Override it in host_vars/127.0.0.1/custom.yml.
 
 # Who builds and signs kernel modules is per distro (kmod_signer in group_vars/os_*): a signer
-# here, or none (EL: VirtualBox's vboxdrv.sh signs with roles/virtualbox's key, NVIDIA is
-# unavailable). roles/akmods_mok creates the signer's key before any of its ids is installed (it
+# here, or none (EL: VirtualBox's vboxdrv.sh signs with roles/virtualbox's key, AlmaLinux's NVIDIA
+# modules come prebuilt and signed). roles/akmods_mok creates the signer's key before any of its ids is installed (it
 # signs at build time) and requests its MOK enrollment:
 #   ids:      catalog ids whose modules it builds
 #   packages: what creating the key needs

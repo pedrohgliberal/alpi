@@ -1,0 +1,2 @@
+# Stable symlink for the NVIDIA GPU (second KWIN_DRM_DEVICES entry: external ports wired to it)
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="nvidia", SYMLINK+="dri/nvidia-card"

@@ -73,7 +73,7 @@ provisioner:
   options:
     # NVIDIA "detected" everywhere (all four listed: this replaces the base config's string);
     # the driver resolves on Fedora, Debian and Ubuntu (not EL), and KDE vetoes it in host_vars
-    extra-vars: '{"is_nvidia": true, "is_asus": false, "is_intel": false, "is_amd": false}'
+    extra-vars: '{"is_nvidia": true, "is_nvidia_pre_turing": false, "is_intel_panel": false, "is_asus": false, "is_intel": false, "is_amd": false}'
   playbooks:
     prepare: prepare.yml
     converge: converge.yml

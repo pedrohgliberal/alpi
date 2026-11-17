@@ -3,8 +3,8 @@
 fuse2_package: fuse-libs
 xz_package: xz
 
-# roles/nvidia: the driver's options file (AFPI's name, so its file is rewritten) and module name
-nvidia_modprobe_conf: /etc/modprobe.d/nvidia.conf
+# roles/nvidia: the module name (the options file is per distro, nvidia_modprobe_conf in
+# group_vars/os_*)
 nvidia_module: nvidia
 
 # roles/upstream (release_package): the vendor's package format, and the installed version of a

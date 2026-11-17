@@ -1,0 +1,22 @@
+#!/bin/bash
+# prime-run — run a program on the NVIDIA GPU (PRIME render offload)
+# Equivalent to Arch's nvidia-prime package; not packaged on EL.
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: prime-run <command> [args...]" >&2
+    exit 1
+fi
+
+if [[ ! -e /proc/driver/nvidia/version ]]; then
+    echo "prime-run: NVIDIA driver not loaded; running on the default GPU" >&2
+    exec "$@"
+fi
+
+export __NV_PRIME_RENDER_OFFLOAD=1          # enable offload (OpenGL/GLX)
+export __GLX_VENDOR_LIBRARY_NAME=nvidia     # GLX: use the NVIDIA library
+export __VK_LAYER_NV_optimus=NVIDIA_only    # Vulkan: expose only the NVIDIA GPU
+
+egl_json=/usr/share/glvnd/egl_vendor.d/10_nvidia.json
+[[ -f $egl_json ]] && export __EGL_VENDOR_LIBRARY_FILENAMES=$egl_json   # EGL (Wayland apps)
+
+exec "$@"

@@ -1,0 +1,11 @@
+---
+# switcheroo-control: "Run using dedicated graphics card" in Plasma's menus. Only where the
+# catalog installs it (EL: nvidia-switcheroo; Fedora's desktops bring their own). Tagged:
+# containers without systemd skip it, the 'services' scenario runs it.
+- name: NVIDIA | Enable switcheroo-control
+  ansible.builtin.systemd_service:
+    name: switcheroo-control.service
+    enabled: true
+    state: started
+  when: "'switcheroo-control' in alpi_pkgs.native + alpi_pkgs_extra.native"
+  tags: [switcheroo]

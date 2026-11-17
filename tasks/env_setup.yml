@@ -55,6 +55,8 @@
 - name: Env Setup | Initialize hardware facts
   set_fact:
     is_nvidia: false
+    is_nvidia_pre_turing: false
+    is_intel_panel: false
     is_intel: false
     is_amd: false
     has_nvidia_driver: false
@@ -81,8 +83,9 @@
     is_secure_boot: "{{ secure_boot_raw.rc == 0 and (secure_boot_raw.stdout | trim) == '1' }}"
   tags: [always]
 
+# -nn adds the [vendor:device] ids (NVIDIA's generation, below); the names stay.
 - name: Env Setup | Detect GPU Type
-  ansible.builtin.shell: lspci | grep -iE "vga|3d|display"
+  ansible.builtin.shell: lspci -nn | grep -iE "vga|3d|display"
   register: gpu_info_raw
   changed_when: false
   failed_when: false
@@ -95,6 +98,37 @@
     is_nvidia: "{{ gpu_info_raw.stdout is defined and gpu_info_raw.stdout is search('NVIDIA', ignorecase=True) }}"
     is_intel: "{{ gpu_info_raw.stdout is defined and gpu_info_raw.stdout is search('Intel', ignorecase=True) }}"
     is_amd: "{{ gpu_info_raw.stdout is defined and gpu_info_raw.stdout is regex('\\b(amd|ati|Advanced Micro Devices)\\b', ignorecase=True) }}"
+    # Every NVIDIA GPU older than Turing: open kernel modules cannot drive it, so the nvidia
+    # feature stays off where the distro's driver has only those (nvidia_open_modules_only,
+    # tasks/resolve.yml). Pinned in Molecule with the is_* flags.
+    is_nvidia_pre_turing: "{{ gpu_info_raw.stdout | default('') | alpi_nvidia_pre_turing }}"
+  tags: [always, hardware]
+
+# A hybrid laptop: an Intel iGPU (i915 or xe) with the built-in panel (an eDP connector) on its
+# card, next to the NVIDIA GPU (roles/nvidia, nvidia_kwin_igpu). The eDP is what tells a laptop
+# from a desktop whose screens hang off the NVIDIA card while the iGPU is enabled too. Connector
+# entries (card1-eDP-1) sit next to the cards in /sys/class/drm. Pinned in Molecule: a container
+# sees the host's /sys.
+- name: Env Setup | Find an Intel iGPU driving the built-in panel
+  ansible.builtin.shell: |
+    for card in /sys/class/drm/card*; do
+      case "${card##*/}" in *-*) continue ;; esac
+      [ -e "$card/device/driver" ] || continue
+      case "$(basename "$(readlink -f "$card/device/driver")")" in
+        i915|xe) for c in "$card"/"${card##*/}"-eDP-*; do [ -e "$c" ] && echo "${c##*/}"; done ;;
+      esac
+    done
+  register: intel_panel_raw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: is_nvidia | bool
+  tags: [always, hardware]
+
+- name: Env Setup | Set the hybrid panel fact
+  set_fact:
+    is_intel_panel: "{{ (intel_panel_raw.stdout | default('')) | length > 0 }}"
+  when: is_nvidia | bool
   tags: [always, hardware]
 
 - name: Env Setup | Check for proprietary NVIDIA driver

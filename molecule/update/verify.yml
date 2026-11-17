@@ -16,10 +16,12 @@
           - cat /etc/dnf/dnf.conf
           - test -f /etc/alpi-test/after-update
           - rpm -q alpi-test-lib alpi-test-lib-freeworld
+          - rpm -q alpi-test-kernel
         _apt_cmds:
           - echo
           - test -f /etc/alpi-test/after-update
           - dpkg-query -W -f=${Version} alpi-test-upgrade
+          - echo
 
     - name: Verify | dnf tuned, the outdated value replaced
       ansible.builtin.assert:
@@ -34,7 +36,7 @@
 
     - name: Verify | The play went on only where no reboot was needed
       ansible.builtin.assert:
-        that: (_q.results[1].rc == 0) == (inventory_hostname in ['alpi-upd-fedora44-ok', 'alpi-upd-debian13-ok'])
+        that: (_q.results[1].rc == 0) == (inventory_hostname in ['alpi-upd-fedora44-ok', 'alpi-upd-el10-fit', 'alpi-upd-debian13-ok'])
         fail_msg: "marker rc {{ _q.results[1].rc }} on {{ inventory_hostname }}"
         quiet: true
 
@@ -44,6 +46,16 @@
         fail_msg: "{{ _q.results[2].stdout_lines }}"
         quiet: true
       when: not _apt
+
+    # The kernel the module cannot load stays out of the upgrade; the one it can is taken
+    - name: Verify | Kernel held back only where the module does not fit it
+      ansible.builtin.assert:
+        that: _q.results[3].stdout == _want
+        fail_msg: "{{ _q.results[3].stdout }} (rc {{ _q.results[3].rc }}), expected {{ _want }}"
+        quiet: true
+      vars:
+        _want: "alpi-test-kernel-{{ '1.0' if inventory_hostname == 'alpi-upd-el10-reboot' else '2.0' }}-1.noarch"
+      when: inventory_hostname in ['alpi-upd-el10-reboot', 'alpi-upd-el10-fit']
 
     # Upgraded before the gate, whether or not the play went on
     - name: Verify | apt upgraded the stand-in

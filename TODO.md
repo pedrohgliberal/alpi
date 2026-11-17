@@ -51,30 +51,38 @@ tests since 2026-11-05 (`TODO-HISTORY.md`); what containers cannot check is left
 
 ## 9. NVIDIA: AlmaLinux 10, and older GPUs on Ubuntu
 
-The catalog leaves NVIDIA out on EL (`nvidia-driver`, `nvidia-build`, `nvidia-vulkan`,
-`nvidia-vaapi`: `el: ~`, skipped with a warning), so an EL10 machine with an NVIDIA GPU keeps
-nouveau (reported 2026-11-12: an AlmaLinux notebook with a GeForce MX450, Turing). AAPI never
-installed it, and RPM Fusion's akmods path is Fedora's. Checked in `almalinux:10` (10.2) on
-2026-11-12: AlmaLinux's own repository, enabled by `almalinux-release-nvidia-driver` (extras),
-`almalinux-nvidia` ("AlmaLinux 10 - NVIDIA Driver & CUDA"), ships driver 620.70.06
-(`nvidia-driver`, `nvidia-driver-cuda`) and prebuilt open modules (`nvidia-open-kmod` →
-`kmod-nvidia-open`, signer "AlmaLinux NVIDIA Module CA"; Turing and newer only), with a
-posttrans that rebuilds the initramfs for the GSP firmware.
+AlmaLinux 10 installs AlmaLinux's NVIDIA driver with prebuilt open modules since 2026-11-16
+(PROPOSAL "Decisions (2026-11-16)"); a GPU older than Turing is skipped with a message there.
+Hybrid laptops get KWin on the iGPU, `prime-run`, switcheroo-control, the kernel/module check
+(the upgrade holds a kernel the module cannot load) and `alpi-nvidia-check` since 2026-11-17
+(PROPOSAL "Decisions (2026-11-17)"). What is left needs the AlmaLinux notebook
+(GeForce MX450, Turing, EFI + Secure Boot; reported 2026-11-12; the KWin fix checked there by
+hand on 2026-11-17).
 
-- [ ] **Catalog and repository:** EL values for `nvidia-driver` (`nvidia-open-kmod`,
-      `nvidia-driver`, `nvidia-driver-cuda`), and for `nvidia-vulkan`/`nvidia-vaapi` where the
-      repository has them (check); `nvidia-build` stays `~` (nothing is built). The repository
-      through `almalinux-release-nvidia-driver` (a `repo:` entry in `roles/repos`, as EL's other
-      release packages). Golden values in `catalog` (EL10), `el10-work` installs it.
 - [ ] **Secure Boot:** EL's `kmod_signer` stays `none` if the AlmaLinux NVIDIA Module CA is
       trusted under Secure Boot without a MOK *(check on real hardware)*; otherwise enroll its
       certificate through `roles/akmods_mok/tasks/enroll.yml`. `secureboot`'s EL instance checks
       the outcome.
-- [ ] **roles/nvidia:** the power options (`nvidia_modprobe_conf`) on EL; no rebuild step (the
-      modules are prebuilt: check that a missing module for the running kernel is reported, not
-      built). Pre-Turing GPUs (no open-module support): decide whether to skip with a message.
-- [ ] **Real hardware:** the AlmaLinux notebook (MX450, EFI + Secure Boot): nouveau gone,
-      `nvidia-smi` lists the GPU, the module loads with Secure Boot on; then a release.
+- [ ] **Real hardware:** an ALPI run on the AlmaLinux notebook (MX450, EFI + Secure Boot), then
+      a reboot, then `alpi-nvidia-check` inside Plasma: every line PASS (driver, no nouveau, the
+      iGPU link and its driver, `KWIN_DRM_DEVICES` in `kwin_wayland`'s environment, `prime-run`
+      with glxinfo, eglinfo and vulkaninfo). Also by hand: Plasma comes up on the built-in screen;
+      the module loads with Secure Boot on; "Run using dedicated graphics card" in Plasma's menus;
+      a second run changes nothing. Then a release.
+- [ ] **prime-run's EGL line** (`__EGL_VENDOR_LIBRARY_FILENAMES`): the file is the driver's
+      (`el10-work` checks it); that a Wayland app renders on NVIDIA through it is not validated
+      yet (`alpi-nvidia-check`'s eglinfo line on the notebook). If it breaks an app, drop the two
+      `egl_json` lines from `roles/nvidia/files/prime-run`.
+- [ ] **External monitors on the NVIDIA GPU:** with the iGPU alone in `KWIN_DRM_DEVICES`, a port
+      wired to the NVIDIA GPU stays dark *(check on the notebook which ports hang off which
+      GPU)*. `nvidia_kwin_dgpu: true` (custom.yml; run ALPI again after the reboot that loads the
+      driver) lists the NVIDIA card second: check that Plasma still starts on the built-in screen
+      and the external port lights up; if so, consider turning it on by default on EL.
+- [ ] **Kernel held back by the module check:** `roles/update` leaves the kernel out of the
+      upgrade while the newest `kmod-nvidia-open` lacks symbols the new kernel provides (PROPOSAL
+      "Decisions (2026-11-17)", item 3; tested with stand-ins in `update`). Check on the notebook
+      at the next AlmaLinux kernel that the comparison matches what `weak-modules` does (no hold
+      when the module loads, a hold when it would not).
 - [ ] **Chrome crashes with the driver:** reported 2026-11-12 on that notebook, after the manual
       install (`almalinux-release-nvidia-driver`, `nvidia-open-kmod`, `nvidia-driver`,
       `nvidia-driver-cuda`) on top of an ALPI run: the driver worked (`nvidia-smi` ran) and Google
@@ -95,19 +103,26 @@ posttrans that rebuilds the initramfs for the GSP firmware.
       `nvidia-drm` options) and `/etc/modprobe.d`, `dracut -f --regenerate-all`; and the recovery
       (chroot with `/dev`, `/proc`, `/sys`, `/run` and `resolv.conf`; reinstall the removed
       non-NVIDIA packages by name from `dnf history info`; `dnf group upgrade` of the
-      environment). Consider an ALPI way back (a feature turned off removes what it added).
+      environment). Consider an ALPI way back (a feature turned off removes what it added). The
+      hybrid fix, `prime-run` and switcheroo-control have their manual undo in PROPOSAL
+      "Decisions (2026-11-17)", item 5.
 - [ ] **Pre-Turing GPUs on Ubuntu (24.04, 26.04):** the pinned `nvidia-driver-615-open` with
       Canonical's `linux-modules-nvidia-615-open-generic` are open modules, which drive only
       Turing and newer (GTX 16xx, RTX 20xx, MX450 and later); a Maxwell, Pascal or Volta GPU
       (GTX 9xx/10xx…) gets a driver that cannot drive it *(check)*. Decide: a proprietary
       (non-open) branch for those GPUs (which branch still supports them, and Canonical's signed
-      `linux-modules-nvidia-NNN-generic` for it), or skip with a message. Detection needs the
-      GPU's generation (PCI device id, `lspci -nn`), not only "NVIDIA present"; the same applies
-      to AlmaLinux's open modules (above). Debian's 550 (proprietary) and Fedora's RPM Fusion
+      `linux-modules-nvidia-NNN-generic` for it), or skip with a message: setting
+      `nvidia_open_modules_only` in `group_vars/os_Ubuntu` does that already (the generation
+      comes from the PCI device id, `is_nvidia_pre_turing`, as on AlmaLinux). Debian's 550 (proprietary) and Fedora's RPM Fusion
       driver are not affected *(check Fedora's branch support for those GPUs)*.
 
 ## Maintenance
 
+- [ ] **`services` flake:** twice on 2026-11-17, in `tests/run.sh full` (scenarios in parallel),
+      idempotence failed on "Enable switcheroo-control" (the service no longer active on the
+      second run); alone and on reruns it passes, and the service stays up with no restarts.
+      Not reproduced: if it recurs, keep the containers (`molecule converge`, then
+      `journalctl -u switcheroo-control -b`) and find what stops it.
 - [ ] After upgrading Molecule (and with it the venv's `ansible-core`, which `tests/run.sh`
       puts first in `PATH`) or Fedora's `ansible` package, rerun `tests/run.sh full` and recheck
       the expected log noise listed in `CLAUDE.md` (Molecule section): the `molecule/default`

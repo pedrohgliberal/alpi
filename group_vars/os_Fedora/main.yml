@@ -7,6 +7,9 @@ packages_os: [multimedia]
 mok_password: "fedora-alpi"
 # akmods builds and signs the NVIDIA and VirtualBox modules (roles/akmods_mok)
 kmod_signer: akmods
+# roles/nvidia: the driver's options file (AFPI's name, so its file is rewritten; RPM Fusion's
+# driver ships its modprobe settings under other names)
+nvidia_modprobe_conf: /etc/modprobe.d/nvidia.conf
 
 # dnf5's needs-restarting says whether to reboot by default (-r is accepted but does nothing)
 zsh_aliases_os:

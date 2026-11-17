@@ -27,9 +27,22 @@
   vars:
     _unknown: "{{ alpi_features_merged.keys() | difference(features_default.keys()) }}"
 
+# An NVIDIA GPU older than Turing counts as not detected where the driver has only open modules
+# (nvidia_open_modules_only), which cannot drive it: the feature stays off and nouveau stays.
 - name: Resolve | Set feature flags
   ansible.builtin.set_fact:
-    alpi_feature: "{{ alpi_features_merged | alpi_features(alpi_hardware_features, {'nvidia': is_nvidia | bool, 'asus': is_asus | bool, 'intel': is_intel | bool, 'amd': is_amd | bool}) }}"
+    alpi_feature: "{{ alpi_features_merged | alpi_features(alpi_hardware_features, {'nvidia': is_nvidia | bool and not (_nvidia_unsupported | bool), 'asus': is_asus | bool, 'intel': is_intel | bool, 'amd': is_amd | bool}) }}"
+    alpi_nvidia_unsupported: "{{ _nvidia_unsupported }}"
+  vars:
+    _nvidia_unsupported: "{{ is_nvidia | bool and is_nvidia_pre_turing | default(false) | bool and nvidia_open_modules_only | bool }}"
+
+- name: Resolve | Report an NVIDIA GPU the driver cannot drive
+  ansible.builtin.debug:
+    msg: >-
+      NVIDIA GPU older than Turing ({{ gpu_info | default('') | regex_findall('\\[10de:[0-9a-f]{4}\\]') | join(', ') or 'pinned' }}):
+      {{ ansible_facts['distribution'] }}'s NVIDIA driver has only open kernel modules, which drive
+      Turing (GTX 16xx, RTX 20xx, MX450) and newer. The nvidia feature is off; nouveau stays.
+  when: alpi_nvidia_unsupported | bool
 
 - name: Resolve | Merge zsh aliases
   ansible.builtin.set_fact:
@@ -100,6 +113,33 @@
     alpi_ids_selected: >-
       {{ (alpi_ids_base + alpi_ids_extra)
          | reject('in', alpi_pkgs.unavailable + alpi_pkgs_extra.unavailable) | list }}
+
+# Another NVIDIA driver source next to the distro's (RPM Fusion's akmod, NVIDIA's CUDA DKMS on
+# EL): the run stops before anything is installed and names what to remove. Never a removal here,
+# and never a '*nvidia*' glob: it would take nvidia-gpu-firmware, which the kernel needs.
+- name: Resolve | NVIDIA packages from another source
+  when:
+    - "'nvidia-driver' in alpi_ids_selected"
+    - nvidia_foreign_packages | length > 0
+  block:
+    - name: Resolve | List installed packages
+      ansible.builtin.command: rpm -qa --qf '%{NAME}\n'
+      register: _rpm_names
+      changed_when: false
+      check_mode: false
+
+    - name: Resolve | Refuse to mix NVIDIA driver sources
+      ansible.builtin.assert:
+        that: _foreign | length == 0
+        fail_msg: >-
+          NVIDIA packages from another source are installed: {{ _foreign | join(', ') }}.
+          ALPI installs {{ ansible_facts['distribution'] }}'s own driver and will not mix the two.
+          Remove them by name (sudo dnf remove --noautoremove {{ _foreign | join(' ') }}; never a
+          '*nvidia*' glob, which takes nvidia-gpu-firmware with it) and run again, or keep that
+          driver and veto ALPI's (features: {nvidia: false} in custom.yml).
+        quiet: true
+      vars:
+        _foreign: "{{ _rpm_names.stdout | alpi_nvidia_foreign(nvidia_foreign_packages, nvidia_foreign_packages_allowed) }}"
 
 - name: Resolve | Check unavailable packages (strict mode)
   ansible.builtin.assert:

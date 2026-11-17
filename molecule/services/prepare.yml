@@ -16,6 +16,51 @@
         name: [clamav, clamav-freshclam]
         state: present
 
+    - name: Prepare | Install switcheroo-control
+      ansible.builtin.package:
+        name: switcheroo-control
+        state: present
+
+# KWin on the iGPU (no udevd in a container: the link the udev rule would make stands in).
+# alpi-svc-on forces it on a desktop; alpi-svc-skip keeps what an earlier run with the NVIDIA card
+# (nvidia_kwin_dgpu) left, which must go now that the machine is no hybrid laptop.
+- name: Prepare | KWin on the iGPU (EL)
+  hosts: alpi-svc-on:alpi-svc-skip
+  gather_facts: false
+  tasks:
+    - name: Prepare | /dev/dri and /etc/udev/rules.d
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: [/dev/dri, /etc/udev/rules.d]
+
+    - name: Prepare | The iGPU's card link
+      ansible.builtin.file:
+        src: /dev/null
+        dest: /dev/dri/igpu-card
+        state: link
+        force: true
+      when: inventory_hostname == 'alpi-svc-on'
+
+    - name: Prepare | An earlier run's rules
+      ansible.builtin.copy:
+        dest: "/etc/udev/rules.d/{{ item }}"
+        content: "# left by an earlier run\n"
+        mode: "0644"
+      loop: [61-igpu-card.rules, 61-nvidia-card.rules]
+      when: inventory_hostname == 'alpi-svc-skip'
+
+    - name: Prepare | /etc/environment
+      ansible.builtin.copy:
+        dest: /etc/environment
+        content: |
+          LANG=C.UTF-8
+          {% if inventory_hostname == 'alpi-svc-skip' %}
+          KWIN_DRM_DEVICES=/dev/dri/igpu-card:/dev/dri/nvidia-card
+          {% endif %}
+        mode: "0644"
+
 - name: Prepare | Packages the service roles manage (Debian)
   hosts: alpi-svc-debian13
   gather_facts: false

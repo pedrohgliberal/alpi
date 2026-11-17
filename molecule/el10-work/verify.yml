@@ -58,18 +58,95 @@
           features: "{{ alpi_feature }}"
           repos: "{{ alpi_repos_enabled | map(attribute='id') | list }}"
 
-    - name: Verify | NVIDIA left alone on EL (feature on, driver unavailable)
+    # The packages are checked by verify_installed (above); the modules land under the kernel
+    # they were built for, and reach a newer kernel of the same ABI through weak-updates
+    - name: Verify | Look up NVIDIA's files
       ansible.builtin.stat:
-        path: /etc/modprobe.d/nvidia.conf
-      register: _nvidia_conf
+        path: "{{ item }}"
+      loop: [/etc/modprobe.d/nvidia.conf, /etc/modprobe.d/alpi-nvidia.conf, /usr/lib/modprobe.d/nvidia.conf]
+      register: _nvidia_files
 
-    - name: Verify | No NVIDIA configuration, driver ids reported unavailable
+    - name: Verify | Find the installed NVIDIA modules
+      ansible.builtin.shell: >-
+        for k in /lib/modules/*/; do modinfo -k "$(basename "$k")" -F version nvidia 2>/dev/null; done | sort -u
+      register: _nvidia_modules
+      changed_when: false
+
+    - name: Verify | Read NVIDIA's options
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/alpi-nvidia.conf
+      register: _nvidia_opts
+
+    # AlmaLinux's nvidia.conf in /usr/lib holds the nouveau blacklist: a file of that name in
+    # /etc would mask it
+    - name: Verify | AlmaLinux's NVIDIA driver, options in ALPI's file, the vendor's file not masked
       ansible.builtin.assert:
         that:
-          - alpi_feature.nvidia
-          - not _nvidia_conf.stat.exists
-          - "'nvidia-driver' in alpi_pkgs.unavailable"
+          - alpi_feature.nvidia and not (alpi_nvidia_unsupported | bool)
+          - "'nvidia-driver' in alpi_ids_selected and 'nvidia-driver' not in alpi_pkgs.unavailable"
+          - "'almalinux-nvidia' in (alpi_repos_enabled | map(attribute='id'))"
+          - "'nvidia-open-kmod' in alpi_pkgs.native and 'libva-nvidia-driver' in alpi_pkgs.native"
+          - _nvidia_modules.stdout_lines | length == 1
+          - not _nvidia_files.results[0].stat.exists
+          - _nvidia_files.results[1].stat.exists and _nvidia_files.results[2].stat.exists
+          - "'options nvidia NVreg_DynamicPowerManagement=0x02' in (_nvidia_opts.content | b64decode)"
+        fail_msg: "modules: {{ _nvidia_modules.stdout_lines }}, files: {{ _nvidia_files.results | map(attribute='stat.exists') | list }}"
         quiet: true
+
+    - name: Verify | Read /etc/environment, run the kernel/module check, read the versionlock list
+      ansible.builtin.command: "{{ item }}"
+      loop:
+        - cat /etc/environment
+        - /usr/local/bin/nvidia-kmod-check
+        - dnf -q versionlock list
+        - /usr/local/bin/alpi-nvidia-check
+        - grep -c '^egl_json=/usr/share/glvnd/egl_vendor.d/10_nvidia.json$' /usr/local/bin/prime-run
+      register: _el_nv
+      changed_when: false
+      failed_when: false
+
+    - name: Verify | Look up the udev rule and prime-run
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: [/etc/udev/rules.d/61-igpu-card.rules, /usr/local/bin/prime-run,
+             /etc/udev/rules.d/61-nvidia-card.rules, /usr/local/bin/alpi-nvidia-check]
+      register: _el_nv_files
+
+    # The stale KWIN_DRM_DEVICES gave way to the iGPU, then the NVIDIA card (nvidia_kwin_dgpu);
+    # the installed kernel has its module; the kernel packages installed (no 'kernel' meta
+    # package here) are locked; old kernels kept
+    - name: Verify | KWin on the iGPU, prime-run, the module check, versionlock, old kernels kept
+      ansible.builtin.assert:
+        that:
+          - _el_nv.results[0].stdout_lines == ['KWIN_DRM_DEVICES=/dev/dri/igpu-card:/dev/dri/nvidia-card']
+          - _el_nv_files.results | map(attribute='stat.exists') | list == [true, true, true, true]
+          - _el_nv_files.results[1].stat.mode == '0755'
+          - _el_nv_files.results[3].stat.mode == '0755'
+          - "_el_nv.results[1].rc == 0 and _el_nv.results[1].stdout is match('OK: nvidia available for ')"
+          - _el_nv.results[2].stdout_lines | map('regex_replace', '-[0-9]+:.*$', '') | sort
+            == ['kernel-core', 'kernel-modules', 'kernel-modules-core']
+          - kernel_keep_old | bool
+          - "'switcheroo-control' in alpi_pkgs.native"
+          - "['glx-utils', 'egl-utils', 'vulkan-tools'] | difference(alpi_pkgs.native) == []"
+        fail_msg: "{{ _el_nv.results | map(attribute='stdout_lines') | list | to_json }}"
+        quiet: true
+
+    # No GPU and no Plasma here, so most checks fail; what this proves: the script runs to the
+    # end (one PASS/FAIL/SKIP line per check, rc 1), and the EGL vendor file prime-run names is
+    # the one AlmaLinux's driver installs
+    - name: Verify | alpi-nvidia-check runs; prime-run's EGL file is the driver's
+      ansible.builtin.assert:
+        that:
+          - _check.rc == 1
+          - _check.stdout_lines | length == 8
+          - _check.stdout_lines | reject('match', '^(PASS|FAIL|SKIP)  ') | list == []
+          - "'PASS  EGL vendor file: /usr/share/glvnd/egl_vendor.d/10_nvidia.json' in _check.stdout_lines"
+          - _check.stdout_lines | select('match', '^FAIL  kwin_wayland is not running') | list | length == 1
+          - _el_nv.results[4].stdout == '1'
+        fail_msg: "{{ {'rc': _check.rc, 'out': _check.stdout_lines, 'err': _check.stderr_lines} | to_json }}"
+        quiet: true
+      vars:
+        _check: "{{ _el_nv.results[3] }}"
 
     - name: Verify | Read root's .zshrc
       ansible.builtin.command: cat /root/.zshrc
@@ -77,11 +154,13 @@
       changed_when: false
 
     # open/close-thevoid (noir's disk) are repository aliases, on unless unticked
-    - name: Verify | EL's full-update (dnf4 needs -r); no nvidia-run (driver unavailable on EL)
+    # root is the run's user here, so it gets the user's aliases: nvidia-run with the driver
+    - name: Verify | EL's full-update (dnf4 needs -r); nvidia-run (NVIDIA on)
       ansible.builtin.assert:
         that:
           - "\"dnf needs-restarting -r'\" in _zshrc.stdout"
-          - "'nvidia-run' not in _zshrc.stdout"
+          - "'|| /usr/local/bin/nvidia-kmod-check; dnf needs-restarting -r' in _zshrc.stdout"
+          - "'alias nvidia-run=' in _zshrc.stdout"
           - "'alias open-thevoid=' in _zshrc.stdout and 'alias close-thevoid=' in _zshrc.stdout"
         fail_msg: "{{ _zshrc.stdout }}"
         quiet: true

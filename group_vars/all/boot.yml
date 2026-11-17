@@ -13,3 +13,8 @@ grub_settings:
 # Fedora and EL (BLS) the blscfg module sets gfxpayload=keep in every kernel entry by itself
 # (checked in grub2 2.12 on Fedora 44 and AlmaLinux 10, 2026-10-10).
 grub_settings_absent: [GRUB_GFXPAYLOAD]
+
+# Keep the kernels older than the newest (dnf's installonly_limit still prunes them): on EL with
+# AlmaLinux's NVIDIA driver (nvidia_kmod_check, group_vars/all/nvidia.yml) a new kernel may come
+# before its prebuilt module, and an older kernel in GRUB is the way back to the driver.
+kernel_keep_old: "{{ nvidia_kmod_check | bool and 'nvidia-driver' in alpi_ids_selected | default([]) }}"

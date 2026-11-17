@@ -18,6 +18,6 @@ provisioner:
     # As fedora44-personal: no systemd, no upgrade or swap in a container ('services', 'update',
     # 'memory' cover them). Setting skip-tags replaces Molecule's default, so its own tags are
     # repeated.
-    skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
+    skip-tags: molecule-notest,notest,clamav,supergfxd,switcheroo,update,memory
   playbooks:
     prepare: prepare.yml

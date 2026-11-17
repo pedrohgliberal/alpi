@@ -2,8 +2,11 @@
 # NVIDIA driver configuration (ported from AFPI's nvidia and hardware roles). The packages come
 # from the catalog (feature_packages.nvidia, installed by roles/packages) and roles/akmods_mok
 # prepared the Secure Boot key before that. Everything here takes effect on the next reboot.
-# The options file and module name per family (group_vars/family_*/main.yml); the module is built
-# by the distro's kmod_signer (akmods on Fedora, DKMS on Debian).
+# The options file and module name per distro (nvidia_modprobe_conf, nvidia_module); the module is
+# built by the distro's kmod_signer (akmods on Fedora, DKMS on Debian) or comes prebuilt (none:
+# AlmaLinux's kmod-nvidia-open; shim: Canonical's signed modules, DKMS only as a fallback).
+# EL also gets KWin on the iGPU of a hybrid laptop, prime-run, switcheroo-control, the acceptance
+# check (alpi-nvidia-check) and the kernel/module check (group_vars/all/nvidia.yml; PROPOSAL "Decisions (2026-11-17)").
 
 - name: NVIDIA | Configure the driver
   when: nvidia_driver_selected
@@ -40,8 +43,24 @@
       failed_when: false
       check_mode: false
 
+    # Prebuilt modules (kmod-nvidia-open) are installed for a kernel release and reach later
+    # kernels of the same ABI through weak-updates; nothing here can build one. A kernel newer
+    # than the modules waits for AlmaLinux's next kmod-nvidia-open (dnf upgrade), on nouveau.
+    - name: NVIDIA | Report a missing prebuilt module
+      ansible.builtin.debug:
+        msg: >-
+          No NVIDIA module for the running kernel ({{ ansible_facts['kernel'] }}), and this
+          distro's modules come prebuilt (nothing is built here): until a kmod-nvidia-open for
+          this kernel arrives (dnf upgrade), the GPU stays on nouveau. Check with
+          'modinfo -k {{ ansible_facts['kernel'] }} {{ nvidia_module }}' after the next upgrade.
+      when:
+        - nvidia_modinfo.rc != 0
+        - kmod_signer == 'none'
+
     - name: NVIDIA | Build the module for the running kernel
-      when: nvidia_modinfo.rc != 0
+      when:
+        - nvidia_modinfo.rc != 0
+        - kmod_signer in ['akmods', 'dkms', 'shim']
       block:
         - name: NVIDIA | Wait for akmods builds started by the install
           ansible.builtin.shell: |
@@ -95,3 +114,44 @@
               - "Vulkan, VA-API and power settings are already in place."
               - "=================================================="
           when: nvidia_akmods is changed or nvidia_dkms is changed
+
+# EL only (group_vars/all/nvidia.yml); nothing below runs on Fedora, Debian or Ubuntu
+- name: NVIDIA | KWin on the iGPU
+  ansible.builtin.include_tasks: kwin_igpu.yml
+  when: nvidia_kwin_igpu | bool
+
+- name: NVIDIA | prime-run, the acceptance check and the kernel/module check
+  ansible.builtin.include_tasks: tools.yml
+  when: nvidia_prime_run | bool or nvidia_acceptance_check | bool or nvidia_kmod_check | bool
+
+- name: NVIDIA | switcheroo-control
+  ansible.builtin.include_tasks:
+    file: switcheroo.yml
+    apply:
+      tags: [switcheroo]
+  when: nvidia_driver_selected
+  tags: [switcheroo]
+
+# Prebuilt modules (kmod_signer none) are in place after the install but load only at boot, and
+# KWin reads /etc/environment at login. Never rebooted from here.
+- name: NVIDIA | Is the driver loaded?
+  ansible.builtin.stat:
+    path: /proc/driver/nvidia/version
+  register: _nvidia_loaded
+  when: nvidia_driver_selected and kmod_signer == 'none'
+
+- name: NVIDIA | Ask for a reboot (prebuilt driver)
+  ansible.builtin.debug:
+    msg:
+      - "=================================================="
+      - "A REBOOT is REQUIRED: {{ _why | join(' and ') }}."
+      - "{{ 'After it, in Plasma: alpi-nvidia-check (PASS/FAIL per check).' if nvidia_acceptance_check | bool
+            else 'After it: nvidia-smi lists the GPU, and lsmod | grep nouveau prints nothing.' }}"
+      - "=================================================="
+  vars:
+    _why: >-
+      {{ (['the NVIDIA driver loads at boot'] if (nvidia_modinfo.rc | default(1) == 0 and not _nvidia_loaded.stat.exists | default(true)) else [])
+         + (['KWin reads KWIN_DRM_DEVICES at login'] if alpi_nvidia_kwin_changed | default(false) else []) }}
+  when:
+    - nvidia_driver_selected and kmod_signer == 'none'
+    - _why | length > 0

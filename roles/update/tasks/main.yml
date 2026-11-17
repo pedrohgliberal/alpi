@@ -15,14 +15,31 @@
 - name: Update | Stop until the system is rebooted
   when: alpi_reboot_needed | bool
   block:
+    # EL's prebuilt NVIDIA modules may lag behind the kernel the upgrade brought (roles/nvidia
+    # installs the check; group_vars/all/nvidia.yml)
+    - name: Update | Does the newest kernel have an NVIDIA module?
+      ansible.builtin.command:
+        cmd: /usr/local/bin/nvidia-kmod-check
+        removes: /usr/local/bin/nvidia-kmod-check
+      register: _update_kmod
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: nvidia_kmod_check | bool and 'nvidia-driver' in alpi_ids_selected
+
     - name: Update | Ask for a reboot
       ansible.builtin.debug:
-        msg:
+        msg: "{{ _banner[:4] + _kmod + _banner[4:] }}"
+      vars:
+        _banner:
           - "=================================================================="
           - "The system was updated and needs a REBOOT before continuing."
           - "Reboot, then run the same ansible-playbook command again:"
           - "the update step will pass and the rest of the setup will run."
           - "=================================================================="
+        _kmod: >-
+          {{ [_update_kmod.stdout | trim, 'Pick the older kernel in GRUB to keep the NVIDIA driver until its module arrives.']
+             if (_update_kmod.rc | default(0)) != 0 and (_update_kmod.stdout | default('')) is search('WARNING') else [] }}
 
     - name: Update | End the play for this host
       ansible.builtin.meta: end_host

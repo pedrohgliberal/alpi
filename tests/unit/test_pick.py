@@ -102,7 +102,7 @@ def test_an_id_without_a_description_lists_its_packages():
 
 @pytest.mark.parametrize("distro, major, update", [
     ("Fedora", "44", "sudo dnf upgrade --refresh -y; dnf needs-restarting"),
-    ("AlmaLinux", "10", "sudo dnf upgrade --refresh -y; dnf needs-restarting -r"),
+    ("AlmaLinux", "10", "sudo dnf upgrade --refresh -y; [ ! -x /usr/local/bin/nvidia-kmod-check ] || /usr/local/bin/nvidia-kmod-check; dnf needs-restarting -r"),
 ])
 def test_zsh_aliases_are_listed_with_their_commands_rendered(distro, major, update):
     data = pick.load_data(ROOT, distro, major)

@@ -20,7 +20,7 @@ platforms:
     volumes: ["alpi-dnf-asus-partial:/var/cache/libdnf5"]
 provisioner:
   options:
-    extra-vars: '{"is_nvidia": false, "is_asus": true, "is_intel": false, "is_amd": false}'
+    extra-vars: '{"is_nvidia": false, "is_nvidia_pre_turing": false, "is_intel_panel": false, "is_asus": true, "is_intel": false, "is_amd": false}'
   playbooks:
     prepare: prepare.yml
     converge: converge.yml

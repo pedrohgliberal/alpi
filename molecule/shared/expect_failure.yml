@@ -3,7 +3,8 @@
 # the case's settings and passes only if it fails with a message containing every _case.expect.
 # _case.broken_repo adds an unreachable repository for the duration of the case.
 # _case.upstream_sources replaces upstream_sources for the case: through set_fact, saved and
-# restored, since a block var could not fall back to the variable it shadows.
+# restored, since a block var could not fall back to the variable it shadows; the same for
+# _case.nvidia_foreign_packages. _case.nvidia_role runs roles/nvidia after env_setup.
 - name: "Case | {{ _case.name }}"
   vars:
     packages_add: "{{ _case.packages_add | default([]) }}"
@@ -33,6 +34,16 @@
       ansible.builtin.set_fact:
         upstream_sources: "{{ _case.upstream_sources }}"
       when: _case.upstream_sources is defined
+
+    - name: "Case | {{ _case.name }} | Save nvidia_foreign_packages"
+      ansible.builtin.set_fact:
+        _saved_nvidia_foreign_packages: "{{ nvidia_foreign_packages }}"
+      when: _case.nvidia_foreign_packages is defined
+
+    - name: "Case | {{ _case.name }} | The case's nvidia_foreign_packages"
+      ansible.builtin.set_fact:
+        nvidia_foreign_packages: "{{ _case.nvidia_foreign_packages }}"
+      when: _case.nvidia_foreign_packages is defined
 
     - name: "Case | {{ _case.name }} | Run env_setup"
       ansible.builtin.include_tasks: ../../tasks/env_setup.yml
@@ -74,6 +85,11 @@
         name: packages
       when: _case.packages_role | default(false)
 
+    - name: "Case | {{ _case.name }} | Run the nvidia role"
+      ansible.builtin.include_role:
+        name: nvidia
+      when: _case.nvidia_role | default(false)
+
     - name: "Case | {{ _case.name }} | It should have failed"
       ansible.builtin.fail:
         msg: "Case '{{ _case.name }}' did not fail"
@@ -87,6 +103,11 @@
         fail_msg: "Expected {{ _case.expect }} in: {{ ansible_failed_result.msg }}"
         quiet: true
   always:
+    - name: "Case | {{ _case.name }} | Restore nvidia_foreign_packages"
+      ansible.builtin.set_fact:
+        nvidia_foreign_packages: "{{ _saved_nvidia_foreign_packages }}"
+      when: _case.nvidia_foreign_packages is defined
+
     - name: "Case | {{ _case.name }} | Restore upstream_sources"
       ansible.builtin.set_fact:
         upstream_sources: "{{ _saved_upstream_sources }}"

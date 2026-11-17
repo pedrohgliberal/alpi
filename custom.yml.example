@@ -66,3 +66,18 @@ zram: auto
 zram_size: ""
 #zram_size: "ram / 2"
 hibernate: false
+
+# AlmaLinux with the NVIDIA driver: hold the installed kernel packages at their versions (dnf
+# versionlock), so an upgrade never brings a kernel AlmaLinux has no NVIDIA module for yet. Off by
+# default (nvidia-kmod-check warns instead, and older kernels stay in GRUB). Setting it back to
+# false does not release them: sudo dnf versionlock delete kernel kernel-core kernel-modules kernel-modules-core
+nvidia_kernel_versionlock: false
+
+# AlmaLinux with the NVIDIA driver, KWin on the iGPU (KWIN_DRM_DEVICES). Applied on its own to a
+# laptop whose built-in panel hangs off an Intel iGPU; a desktop is left alone, since its monitor
+# usually hangs off the NVIDIA card. Force it on a desktop whose monitor is on the motherboard's
+# port (true), and only there: with the monitor on the NVIDIA card, Plasma would come up black.
+nvidia_kwin_igpu_force: false
+# Also hand KWin the NVIDIA card (second device), for external ports wired to the NVIDIA GPU. Not
+# tested on hardware yet; added by the run after the reboot that loads the driver.
+nvidia_kwin_dgpu: false

@@ -1,0 +1,149 @@
+---
+# KWin on the iGPU of a hybrid laptop (nvidia_kwin_igpu, group_vars/all/nvidia.yml): with the
+# NVIDIA driver loaded, KWin took the NVIDIA card as its primary DRM device and Plasma went black
+# after login, since the built-in panel hangs off the iGPU (AlmaLinux notebook, MX450,
+# 2026-11-17). A udev symlink names the iGPU's card and KWIN_DRM_DEVICES points KWin at it; the
+# NVIDIA GPU stays available for offload (prime-run). Only while an NVIDIA GPU and an Intel iGPU
+# driving the panel are both there (is_intel_panel, env_setup) or nvidia_kwin_igpu_force says so;
+# otherwise what this made goes. nvidia_kwin_dgpu adds the NVIDIA card as KWin's second device.
+
+- name: NVIDIA | KWin on the iGPU (hybrid laptop)
+  when: is_nvidia | bool and (is_intel_panel | bool or nvidia_kwin_igpu_force | bool)
+  vars:
+    # What ALPI may have written: the iGPU alone, or followed by the NVIDIA card
+    _kwin_alpi_lines: "^KWIN_DRM_DEVICES={{ nvidia_kwin_igpu_device | regex_escape }}(:{{ nvidia_kwin_dgpu_device | regex_escape }})?$"
+  block:
+    # Installed systems have it (systemd-udev); a minimal one may not
+    - name: NVIDIA | Ensure /etc/udev/rules.d exists
+      ansible.builtin.file:
+        path: "{{ nvidia_kwin_igpu_rule | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: NVIDIA | Name the iGPU's card for KWin (udev rule)
+      ansible.builtin.copy:
+        src: 61-igpu-card.rules
+        dest: "{{ nvidia_kwin_igpu_rule }}"
+        owner: root
+        group: root
+        mode: '0644'
+      register: _kwin_rule
+
+    - name: NVIDIA | Name the NVIDIA card for KWin (udev rule)
+      ansible.builtin.copy:
+        src: 61-nvidia-card.rules
+        dest: "{{ nvidia_kwin_dgpu_rule }}"
+        owner: root
+        group: root
+        mode: '0644'
+      register: _kwin_dgpu_rule
+      when: nvidia_kwin_dgpu | bool
+
+    - name: NVIDIA | Remove the NVIDIA card's udev rule (nvidia_kwin_dgpu off)
+      ansible.builtin.file:
+        path: "{{ nvidia_kwin_dgpu_rule }}"
+        state: absent
+      when: not nvidia_kwin_dgpu | bool
+
+    - name: NVIDIA | Look for the cards' links
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: _kwin_links
+      loop: "{{ [nvidia_kwin_igpu_device] + ([nvidia_kwin_dgpu_device] if nvidia_kwin_dgpu | bool else []) }}"
+
+    # A new rule reaches the card already there through an 'add' event; settle waits for the link
+    - name: NVIDIA | Apply the udev rules
+      ansible.builtin.shell: >-
+        udevadm control --reload &&
+        udevadm trigger --subsystem-match=drm --action=add &&
+        udevadm settle
+      register: _kwin_udev
+      changed_when: _kwin_rule is changed or _kwin_dgpu_rule is changed
+      failed_when: false
+      when: >-
+        _kwin_rule is changed or _kwin_dgpu_rule is changed
+        or _kwin_links.results | rejectattr('stat.exists') | list | length > 0
+
+    - name: NVIDIA | Look for the cards' links again
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: _kwin_links
+      loop: "{{ [nvidia_kwin_igpu_device] + ([nvidia_kwin_dgpu_device] if nvidia_kwin_dgpu | bool else []) }}"
+
+    # KWIN_DRM_DEVICES naming a device that does not exist leaves KWin with no GPU at all: the
+    # variable goes (when an earlier run set it) and the run stops
+    - name: NVIDIA | Without the link, KWin keeps its own choice
+      when: not _kwin_links.results[0].stat.exists
+      block:
+        - name: NVIDIA | Remove ALPI's KWIN_DRM_DEVICES
+          ansible.builtin.lineinfile:
+            path: /etc/environment
+            regexp: "{{ _kwin_alpi_lines }}"
+            state: absent
+
+        - name: NVIDIA | Stop on the missing link
+          ansible.builtin.fail:
+            msg: >-
+              {{ nvidia_kwin_igpu_device }} did not appear after the udev rule
+              ({{ nvidia_kwin_igpu_rule }}; udevadm: {{ (_kwin_udev.stderr | default('') | trim) or 'ok' }}),
+              so KWIN_DRM_DEVICES was not set: pointing KWin at a missing device would leave it
+              with no GPU. Check the iGPU's driver (ls -l /sys/class/drm/card*/device/driver: i915
+              or xe) and 'udevadm test /sys/class/drm/cardN', then run again. Until then Plasma
+              may go black after login once the NVIDIA driver loads.
+
+    # The NVIDIA card only once its link is there (nvidia-drm loaded): never a missing second device
+    - name: NVIDIA | KWin's devices
+      ansible.builtin.set_fact:
+        _kwin_value: >-
+          {{ nvidia_kwin_igpu_device
+             ~ ((':' ~ nvidia_kwin_dgpu_device)
+                if nvidia_kwin_dgpu | bool and _kwin_links.results[1].stat.exists | default(false) else '') }}
+
+    - name: NVIDIA | Drop other KWIN_DRM_DEVICES lines
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: "^KWIN_DRM_DEVICES=(?!{{ _kwin_value | regex_escape }}$)"
+        state: absent
+      register: _kwin_env_old
+
+    - name: NVIDIA | Point KWin at the iGPU
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        line: "KWIN_DRM_DEVICES={{ _kwin_value }}"
+        create: true
+        owner: root
+        group: root
+        mode: '0644'
+      register: _kwin_env
+
+    - name: NVIDIA | NVIDIA card not there yet
+      ansible.builtin.debug:
+        msg: >-
+          {{ nvidia_kwin_dgpu_device }} appears once the NVIDIA driver loads: run ALPI again after
+          the reboot to give KWin the NVIDIA card's outputs (external ports) as well.
+      when:
+        - nvidia_kwin_dgpu | bool
+        - not _kwin_links.results[1].stat.exists
+
+    - name: NVIDIA | Record a KWin change (reboot reminder)
+      ansible.builtin.set_fact:
+        alpi_nvidia_kwin_changed: >-
+          {{ _kwin_rule is changed or _kwin_dgpu_rule is changed
+             or _kwin_env_old is changed or _kwin_env is changed }}
+
+- name: NVIDIA | Not a hybrid laptop, KWin left alone
+  when: not (is_nvidia | bool and (is_intel_panel | bool or nvidia_kwin_igpu_force | bool))
+  block:
+    - name: NVIDIA | Remove the udev rules
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: ["{{ nvidia_kwin_igpu_rule }}", "{{ nvidia_kwin_dgpu_rule }}"]
+
+    - name: NVIDIA | Remove ALPI's KWIN_DRM_DEVICES
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: "^KWIN_DRM_DEVICES={{ nvidia_kwin_igpu_device | regex_escape }}(:{{ nvidia_kwin_dgpu_device | regex_escape }})?$"
+        state: absent

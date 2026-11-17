@@ -7,6 +7,11 @@
 #   alpi-svc-skip: clamav feature on, clamav-freshclam skipped and not installed: nothing to do
 #                  (AFPI/AAPI enabled freshclam unconditionally and failed here)
 #   alpi-svc-debian13: as alpi-svc-on, on Debian 13
+# NVIDIA is pinned on: switcheroo-control (roles/nvidia's switcheroo.yml, EL's nvidia-switcheroo)
+# enabled and running on alpi-svc-on, left alone where its id is skipped (alpi-svc-skip) or
+# resolves to nothing (Debian). And KWin on the iGPU (roles/nvidia's kwin_igpu.yml) on desktops
+# (is_intel_panel pinned false): forced by nvidia_kwin_igpu_force on alpi-svc-on, an earlier
+# run's rules and two-device KWIN_DRM_DEVICES removed on alpi-svc-skip
 platforms:
   - name: alpi-svc-on
     image: docker.io/almalinux/10-init
@@ -28,6 +33,8 @@ platforms:
     systemd: always
     volumes: ["alpi-dnf-svc-debian13:/var/cache/apt"]
 provisioner:
+  options:
+    extra-vars: '{"is_nvidia": true, "is_nvidia_pre_turing": false, "is_intel_panel": false, "is_asus": false, "is_intel": false, "is_amd": false}'
   playbooks:
     prepare: prepare.yml
     converge: converge.yml

@@ -124,6 +124,19 @@
         packages_role: true
         expect: ["Dependencies could not be resolved", "alpi-test-lib-freeworld",
                  "none of the listed packages was installed"]
+      # Another NVIDIA driver source next to AlmaLinux's (NVIDIA pinned on, molecule.yml): bash
+      # stands in for akmod-nvidia, the real patterns are unit-tested (alpi_nvidia_foreign)
+      - name: NVIDIA packages from another source
+        only: AlmaLinux
+        nvidia_foreign_packages: [bash]
+        expect: ["NVIDIA packages from another source are installed: bash.",
+                 "sudo dnf remove --noautoremove bash", "never a '*nvidia*' glob"]
+      # A hybrid laptop (is_intel_panel pinned on) whose iGPU link never appears: no udevd here
+      - name: iGPU link missing
+        only: AlmaLinux
+        nvidia_role: true
+        expect: ["/dev/dri/igpu-card did not appear after the udev rule",
+                 "so KWIN_DRM_DEVICES was not set"]
       - name: unreadable repository
         packages_role: true
         broken_repo: true

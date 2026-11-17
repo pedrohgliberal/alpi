@@ -1,0 +1,104 @@
+#!/bin/bash
+# alpi-nvidia-check — acceptance checks for AlmaLinux's NVIDIA driver (installed by ALPI).
+# Run it as your user inside the Plasma session, after the reboot that follows the ALPI run.
+# One line per check (PASS, FAIL or SKIP); exits 1 when any check fails.
+
+failed=0
+pass() { printf 'PASS  %s\n' "$1"; }
+fail() { printf 'FAIL  %s\n' "$1"; failed=1; }
+skip() { printf 'SKIP  %s\n' "$1"; }
+
+igpu_rule=/etc/udev/rules.d/61-igpu-card.rules
+igpu_link=/dev/dri/igpu-card
+egl_json=/usr/share/glvnd/egl_vendor.d/10_nvidia.json
+
+# --- The driver ---
+if gpu=$(nvidia-smi -L 2>/dev/null) && [[ -n $gpu ]]; then
+    pass "nvidia-smi: ${gpu%%$'\n'*}"
+else
+    fail "nvidia-smi does not see the GPU (driver not loaded? lsmod | grep nvidia)"
+fi
+
+if lsmod | grep -q '^nouveau '; then
+    fail "nouveau is loaded"
+else
+    pass "nouveau is not loaded"
+fi
+
+# --- KWin on the iGPU (hybrid laptops only) ---
+if [[ -e $igpu_rule ]]; then
+    if [[ -e $igpu_link ]]; then
+        card=$(readlink -f "$igpu_link")
+        driver=$(basename "$(readlink -f "/sys/class/drm/${card##*/}/device/driver")")
+        if [[ $driver == i915 || $driver == xe ]]; then
+            pass "$igpu_link -> $card ($driver)"
+        else
+            fail "$igpu_link -> $card is driven by '$driver', not i915/xe"
+        fi
+    else
+        fail "$igpu_link is missing (udevadm test /sys/class/drm/cardN)"
+    fi
+
+    want=$(sed -n 's/^KWIN_DRM_DEVICES=//p' /etc/environment)
+    pid=$(pgrep -u "$(id -u)" -x kwin_wayland | head -n 1)
+    if [[ -z $pid ]]; then
+        fail "kwin_wayland is not running for $(id -un): run this inside the Plasma session"
+    else
+        got=$(tr '\0' '\n' <"/proc/$pid/environ" | sed -n 's/^KWIN_DRM_DEVICES=//p')
+        if [[ -n $got && $got == "$want" ]]; then
+            pass "kwin_wayland has KWIN_DRM_DEVICES=$got"
+        else
+            fail "kwin_wayland has KWIN_DRM_DEVICES='$got', /etc/environment says '$want'"
+        fi
+    fi
+else
+    skip "KWin checks: not a hybrid laptop ($igpu_rule absent)"
+fi
+
+# --- PRIME render offload ---
+if ! command -v prime-run >/dev/null; then
+    fail "prime-run is not installed"
+else
+    if command -v glxinfo >/dev/null; then
+        glx=$(prime-run glxinfo -B 2>/dev/null | sed -n 's/^OpenGL renderer string: //p')
+        if [[ $glx == *NVIDIA* ]]; then
+            pass "prime-run glxinfo: $glx"
+        else
+            fail "prime-run glxinfo: '${glx:-no renderer}'"
+        fi
+    else
+        fail "glxinfo missing (dnf install glx-utils)"
+    fi
+
+    if [[ -f $egl_json ]]; then
+        pass "EGL vendor file: $egl_json"
+    else
+        fail "EGL vendor file missing: $egl_json (prime-run cannot pin EGL to NVIDIA)"
+    fi
+    if command -v eglinfo >/dev/null; then
+        # The Wayland platform's section: what a Wayland app under prime-run gets
+        egl=$(prime-run eglinfo -B 2>/dev/null |
+            awk '/^Wayland platform/ { f = 1; next } /platform:$/ { f = 0 } f' |
+            sed -n 's/^OpenGL\( core profile\)\? renderer: //p' | head -n 1)
+        if [[ $egl == *NVIDIA* ]]; then
+            pass "prime-run eglinfo (Wayland): $egl"
+        else
+            fail "prime-run eglinfo (Wayland): '${egl:-no renderer}'"
+        fi
+    else
+        fail "eglinfo missing (dnf install egl-utils)"
+    fi
+
+    if command -v vulkaninfo >/dev/null; then
+        vk=$(prime-run vulkaninfo --summary 2>/dev/null | sed -n 's/^[[:space:]]*deviceName[[:space:]]*= //p')
+        if [[ -n $vk ]] && ! grep -qv NVIDIA <<<"$vk"; then
+            pass "prime-run vulkaninfo: ${vk//$'\n'/, }"
+        else
+            fail "prime-run vulkaninfo: '${vk//$'\n'/, }' (expected NVIDIA devices only)"
+        fi
+    else
+        fail "vulkaninfo missing (dnf install vulkan-tools)"
+    fi
+fi
+
+exit "$failed"

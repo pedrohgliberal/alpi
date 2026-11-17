@@ -18,3 +18,15 @@
     - name: Services | ClamAV
       ansible.builtin.import_role:
         name: clamav
+
+    # roles/nvidia's order: the udev trigger of kwin_igpu.yml comes before the service starts
+    - name: Services | KWin on the iGPU (roles/nvidia, EL); a desktop, is_intel_panel pinned false
+      ansible.builtin.include_role:
+        name: nvidia
+        tasks_from: kwin_igpu.yml
+      when: nvidia_kwin_igpu | bool
+
+    - name: Services | switcheroo-control (roles/nvidia)
+      ansible.builtin.include_role:
+        name: nvidia
+        tasks_from: switcheroo.yml

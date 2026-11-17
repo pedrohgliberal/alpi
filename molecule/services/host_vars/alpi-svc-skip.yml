@@ -1,3 +1,4 @@
 ---
-# Feature on, freshclam skipped: the role must not touch the (missing) service
-packages_skip: [clamav-freshclam]
+# Feature on, freshclam skipped: the role must not touch the (missing) service; the same for
+# switcheroo-control (NVIDIA pinned on, its id skipped)
+packages_skip: [clamav-freshclam, nvidia-switcheroo]

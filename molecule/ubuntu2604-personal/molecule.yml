@@ -11,7 +11,7 @@ platforms:
 provisioner:
   options:
     # As fedora44-personal and debian13-personal
-    skip-tags: molecule-notest,notest,clamav,supergfxd,update,memory
+    skip-tags: molecule-notest,notest,clamav,supergfxd,switcheroo,update,memory
   playbooks:
     prepare: ../debian13-personal/prepare.yml
     converge: ../shared/converge.yml

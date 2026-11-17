@@ -1,0 +1,108 @@
+---
+# What EL's prebuilt driver lacks (group_vars/all/nvidia.yml): prime-run, the acceptance check,
+# the kernel/module check and, optionally, the kernel versionlock. Each goes when the driver is no longer selected
+# (the versionlock excepted: see nvidia_kernel_versionlock).
+
+- name: NVIDIA | prime-run (PRIME render offload)
+  ansible.builtin.copy:
+    src: prime-run
+    dest: /usr/local/bin/prime-run
+    owner: root
+    group: root
+    mode: '0755'
+  when: nvidia_prime_run | bool and nvidia_driver_selected
+
+- name: NVIDIA | Remove prime-run (driver not selected)
+  ansible.builtin.file:
+    path: /usr/local/bin/prime-run
+    state: absent
+  when: nvidia_prime_run | bool and not nvidia_driver_selected
+
+- name: NVIDIA | Acceptance check (alpi-nvidia-check)
+  ansible.builtin.copy:
+    src: alpi-nvidia-check
+    dest: /usr/local/bin/alpi-nvidia-check
+    owner: root
+    group: root
+    mode: '0755'
+  when: nvidia_acceptance_check | bool and nvidia_driver_selected
+
+- name: NVIDIA | Remove alpi-nvidia-check (driver not selected)
+  ansible.builtin.file:
+    path: /usr/local/bin/alpi-nvidia-check
+    state: absent
+  when: nvidia_acceptance_check | bool and not nvidia_driver_selected
+
+- name: NVIDIA | Kernel/module check
+  when: nvidia_kmod_check | bool
+  block:
+    - name: NVIDIA | Install nvidia-kmod-check
+      ansible.builtin.copy:
+        src: nvidia-kmod-check
+        dest: /usr/local/bin/nvidia-kmod-check
+        owner: root
+        group: root
+        mode: '0755'
+      when: nvidia_driver_selected
+
+    - name: NVIDIA | Remove nvidia-kmod-check (driver not selected)
+      ansible.builtin.file:
+        path: /usr/local/bin/nvidia-kmod-check
+        state: absent
+      when: not nvidia_driver_selected
+
+    - name: NVIDIA | Does the newest kernel have a module?
+      ansible.builtin.command: /usr/local/bin/nvidia-kmod-check
+      register: nvidia_kmod_newest
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: nvidia_driver_selected and not ansible_check_mode
+
+    - name: NVIDIA | Warn about a kernel without a module
+      ansible.builtin.debug:
+        msg:
+          - "{{ (nvidia_kmod_newest.stdout | default('') | trim) or (nvidia_kmod_newest.stderr | default('') | trim) }}"
+          - "Boot the older kernel from GRUB until AlmaLinux publishes its module (dnf upgrade), then check again: nvidia-kmod-check"
+      when:
+        - nvidia_kmod_newest is not skipped
+        - nvidia_kmod_newest.rc | default(0) != 0
+
+# Off by default. Only the packages installed now: dnf versionlock add would also match a name
+# that is only available.
+- name: NVIDIA | Hold the kernel packages (dnf versionlock)
+  when:
+    - nvidia_kmod_check | bool
+    - nvidia_kernel_versionlock | bool
+    - nvidia_driver_selected
+  block:
+    # Fresh metadata: a run with --skip-tags update may hold a cache naming a build the mirrors
+    # dropped (seen in el10-work's dnf cache volume)
+    - name: NVIDIA | Install the versionlock plugin
+      ansible.builtin.dnf:
+        name: python3-dnf-plugin-versionlock
+        state: present
+        update_cache: true
+
+    - name: NVIDIA | List the installed kernel packages
+      ansible.builtin.shell: >-
+        rpm -q --qf '%{NAME}\n' {{ nvidia_kernel_versionlock_packages | join(' ') }} | grep -v ' '
+      register: _vlock_installed
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: NVIDIA | Read the versionlock list
+      ansible.builtin.command: dnf -q versionlock list
+      register: _vlock_list
+      changed_when: false
+      check_mode: false
+
+    - name: NVIDIA | Lock the kernel packages
+      ansible.builtin.command: dnf -q versionlock add {{ _missing | join(' ') }}
+      when: _missing | length > 0
+      vars:
+        _missing: >-
+          {{ _vlock_installed.stdout_lines | unique
+             | reject('in', _vlock_list.stdout_lines | map('regex_replace', '-[0-9]+:.*$', '') | list)
+             | list }}

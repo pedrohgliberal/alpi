@@ -20,6 +20,10 @@ platforms:
     volumes: ["alpi-dnf-failures-debian13:/var/cache/apt"]
     groups: [apt]
 provisioner:
+  options:
+    # NVIDIA on, on a hybrid laptop: the NVIDIA cases on AlmaLinux (the others resolve its
+    # packages too, and the AlmaLinux ones pass the foreign-package check)
+    extra-vars: '{"is_nvidia": true, "is_nvidia_pre_turing": false, "is_intel_panel": true, "is_asus": false, "is_intel": false, "is_amd": false}'
   playbooks:
     prepare: prepare.yml
     converge: converge.yml

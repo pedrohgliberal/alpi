@@ -10,6 +10,42 @@
   loop_control:
     label: "{{ item.key }}"
 
+# EL's prebuilt NVIDIA module (group_vars/all/nvidia.yml, nvidia_kmod_hold_*): a kernel newer than
+# what the newest module package can load (kernel symbols it requires and the kernel does not
+# provide: weak-modules' test) is left out of this upgrade. Prints 'hold <version> <missing>'
+# then; 'ok', 'installed' or 'none' (nothing to compare) let the kernel through.
+- name: Update | Does the newest kernel fit the NVIDIA module?
+  ansible.builtin.shell: |
+    set -o pipefail
+    k=$(dnf -q --refresh repoquery --latest-limit 1 --qf '%{version}-%{release}\n' {{ nvidia_kmod_hold_kernel }} | sed '/^$/d' | tail -n 1)
+    [ -n "$k" ] || { echo none; exit 0; }
+    rpm -q "{{ nvidia_kmod_hold_kernel }}-$k" >/dev/null 2>&1 && { echo "installed $k"; exit 0; }
+    req=$(dnf -q repoquery --latest-limit 1 --requires {{ nvidia_kmod_hold_module }} | grep '^kernel(' | sort -u || true)
+    [ -n "$req" ] || { echo "none $k"; exit 0; }
+    prov=$(dnf -q repoquery --provides {% for p in nvidia_kmod_hold_packages %}"{{ p }}-$k" {% endfor %}| grep '^kernel(' | sort -u || true)
+    missing=$(comm -23 <(printf '%s\n' "$req") <(printf '%s\n' "$prov") | wc -l)
+    if [ "$missing" -eq 0 ]; then echo "ok $k"; else echo "hold $k $missing"; fi
+  args:
+    executable: /bin/bash
+  register: _kernel_fit
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: kernel_keep_old | bool
+
+- name: Update | Kernel held back?
+  ansible.builtin.set_fact:
+    _kernel_held: "{{ (_kernel_fit.stdout | default('')) is match('hold ') }}"
+
+- name: Update | Hold the kernel back
+  ansible.builtin.debug:
+    msg: >-
+      Kernel {{ _kernel_fit.stdout.split()[1] }} is available, but the newest
+      {{ nvidia_kmod_hold_module }} lacks {{ _kernel_fit.stdout.split()[2] }} of the kernel symbols it
+      needs: this upgrade leaves {{ nvidia_kmod_hold_packages | join(', ') }} out, so the NVIDIA
+      driver keeps working. A later run takes the kernel once AlmaLinux publishes its module.
+  when: _kernel_held | bool
+
 # nobest: an update that cannot be installed is held back instead of failing the run. RPM Fusion's
 # freeworld builds pin their EPEL library's exact version (libheif-freeworld: libheif = X), so EPEL
 # shipping the library first blocks it until RPM Fusion rebuilds; EL's dnf.conf has best=True.
@@ -19,6 +55,7 @@
     state: latest
     update_cache: true
     nobest: true
+    exclude: "{{ nvidia_kmod_hold_packages if _kernel_held | bool else [] }}"
 
 # Reboot signals: 'needs-restarting -r' comes from dnf5-plugins / dnf-plugins-core
 # (alpi_dnf_plugins, roles/repos); rc 1 = reboot needed.
