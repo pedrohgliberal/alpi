@@ -81,6 +81,7 @@
           - "'alias open-backup=\"udisksctl unlock -b /dev/disk/by-uuid/0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b && udisksctl mount -b /dev/mapper/luks-0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b\"' in _rc"
           - "'alias alpi-test=\"echo custom\"' in _rc"
           - "'nvidia-run' not in _rc"
+          - _zsh.results[0].stdout_lines | select('match', '^export (EDITOR|VISUAL)=') | list == []
           - _rc.count('# BEGIN ANSIBLE MANAGED ALIASES') == 1
         fail_msg: "{{ _rc }}"
         quiet: true

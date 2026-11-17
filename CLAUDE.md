@@ -212,8 +212,11 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   loads after `secrets.yml` and would override it) in the user's `.zshrc` only, removed when
   empty; AFPI's legacy `NVIDIA AND API CONFIGURATION` block removed. `luks_volumes` is validated in
   `env_setup` (`alpi_invalid_luks`) and turned into aliases by `alpi_luks_aliases` (by-uuid).
+  With `neovim` selected, `zsh_editor_env` adds `export EDITOR=nvim` / `VISUAL=nvim` to root's and
+  the user's block (GitHub issue #1); apt's family layer aliases `fd` to `fdfind` (`fd-find`).
 - `roles/desktop` (after `zsh`; skipped when the user is root): `~/wks`, Konsole on KDE (profile
-  and color scheme in `files/`, `konsolerc`), Ptyxis on GNOME (gsettings/dconf as the user, with
+  and color scheme in `files/`, `konsolerc`; the profile allows OSC 8 links, http/https/file,
+  underlined, Ctrl+click: issue #2), Ptyxis on GNOME (gsettings/dconf as the user, with
   `XDG_RUNTIME_DIR`/`DBUS_SESSION_BUS_ADDRESS` set from the user's uid; changed only when the
   read-back value differs; only when Ptyxis's schema is installed: Debian's GNOME has
   gnome-terminal), cedilla (`~/.XCompose` from the Compose file of the locale in

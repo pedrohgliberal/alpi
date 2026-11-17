@@ -35,12 +35,15 @@
       register: _deb_zshrc
       changed_when: false
 
+    # neovim, ripgrep and fd-find added in custom.yml: nvim as the editor, fd for fdfind
     - name: Verify | zsh set up, with apt's full-update
       ansible.builtin.assert:
         that:
           - "'ZSH_THEME=\"kali-like-alt\"' in _deb_zshrc.stdout"
           - _deb_zshrc.stdout_lines | select('match', "^alias full-update='flatpak update -y; .*sudo apt full-upgrade -y;") | list | length == 1
           - "'alias lls=' in _deb_zshrc.stdout"
+          - "'export EDITOR=nvim' in _deb_zshrc.stdout_lines and 'export VISUAL=nvim' in _deb_zshrc.stdout_lines"
+          - "\"alias fd='fdfind'\" in _deb_zshrc.stdout_lines"
         fail_msg: "{{ _deb_zshrc.stdout }}"
         quiet: true
 

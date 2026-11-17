@@ -27,16 +27,19 @@ alpi_catalog:
   btop:          {all: btop}                        # EPEL on EL
   curl:          {all: curl}
   fastfetch:     {all: fastfetch, ubuntu2404: {upstream: fastfetch}}   # packaged from Ubuntu 24.10 on
+  fd-find:       {all: fd-find}                     # EPEL on EL; 'fdfind' on Debian/Ubuntu (zsh alias fd)
   forgejo-cli:   {all: {upstream: forgejo-cli}}     # fj; packaged by Ubuntu only, and old
   git:           {all: git}
   hwinfo:        {all: hwinfo}
   imagemagick:   {rpm: ImageMagick, deb: imagemagick}                 # EPEL on EL
   lm-sensors:    {rpm: lm_sensors, deb: lm-sensors}
   nodejs:        {all: nodejs}
+  neovim:        {all: neovim}                      # EPEL on EL; LazyVim needs 0.11.2+: Fedora, Ubuntu 26.04
   nvtop:         {all: nvtop}
   pipx:          {all: pipx}
   potrace:       {all: potrace}                     # EPEL on EL
   python3-pip:   {all: python3-pip}
+  ripgrep:       {all: ripgrep}                     # EPEL on EL
   shellcheck:    {rpm: ShellCheck, deb: shellcheck}
   tea:           {all: {upstream: tea}}             # Gitea CLI; apt's tea-cli is years behind
   testdisk:      {all: testdisk}

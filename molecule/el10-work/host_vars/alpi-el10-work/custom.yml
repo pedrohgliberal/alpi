@@ -4,7 +4,7 @@
 # scenario checks every name; Flatpaks are installed by fedora44-personal. Skipped here:
 # Flatpaks and the heaviest downloads (part here, part in selection.yml).
 packages_skip: [slack, spotify, zapzap, zoom, zotero]
-packages_add: ["pkg:tree", steam, "pipx:cowsay"]
+packages_add: ["pkg:tree", steam, "pipx:cowsay", neovim, ripgrep, fd-find]
 packages_absent: ["pkg:nano"]
 # No hostname and no git identity: the hostname is left alone, only the git defaults are written.
 # Off by default (group_vars/all/nvidia.yml): the kernel packages held at their versions

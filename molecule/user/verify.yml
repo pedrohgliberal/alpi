@@ -14,9 +14,9 @@
         - /home/alpi/.config/konsolerc
       register: _files
 
-    - name: Verify | Read .XCompose and konsolerc
+    - name: Verify | Read .XCompose, konsolerc and the Konsole profile
       ansible.builtin.command: "cat {{ item }}"
-      loop: [/home/alpi/.XCompose, /home/alpi/.config/konsolerc]
+      loop: [/home/alpi/.XCompose, /home/alpi/.config/konsolerc, /home/alpi/.local/share/konsole/kali-like-alt.profile]
       register: _content
       changed_when: false
       failed_when: false
@@ -60,6 +60,19 @@
         quiet: true
       vars:
         _rc: "{{ _content.results[1].stdout_lines }}"
+      when: _desktop == 'KDE'
+
+    # OSC 8 hyperlinks (ls --hyperlink, the AI tools' file links) clickable with Ctrl, underlined
+    - name: Verify | Konsole profile allows escaped links (KDE)
+      ansible.builtin.assert:
+        that:
+          - _profile[_start:_start + 5] == ['[Interaction Options]', 'AllowEscapedLinks=true',
+            'EscapedLinksSchema=http://;https://;file://', 'UnderlineFiles=true', 'UnderlineLinks=true']
+        fail_msg: "{{ _profile | to_json }}"
+        quiet: true
+      vars:
+        _profile: "{{ _content.results[2].stdout_lines }}"
+        _start: "{{ _profile.index('[Interaction Options]') if '[Interaction Options]' in _profile else 0 }}"
       when: _desktop == 'KDE'
 
     - name: Verify | Read the Ptyxis settings as alpi (GNOME)

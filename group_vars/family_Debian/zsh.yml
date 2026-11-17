@@ -3,6 +3,12 @@
 # zsh_aliases_os). full-update ends with roles/update's reboot signals: Ubuntu's
 # /run/reboot-required, or a kernel image newer than the running one (Debian writes no flag).
 zsh_aliases_family:
+  # Debian and Ubuntu name fd-find's binary fdfind (another package owns 'fd')
+  fd:
+    cmd: fdfind
+    description: fd (fd-find's binary is fdfind here)
+    root: true
+    requires: fd-find
   full-update:
     cmd: >-
       flatpak update -y; {{ zsh_full_update_tools }}sudo apt update && sudo apt full-upgrade -y;

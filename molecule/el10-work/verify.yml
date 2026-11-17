@@ -155,12 +155,15 @@
 
     # open/close-thevoid (noir's disk) are repository aliases, on unless unticked
     # root is the run's user here, so it gets the user's aliases: nvidia-run with the driver
-    - name: Verify | EL's full-update (dnf4 needs -r); nvidia-run (NVIDIA on)
+    # neovim and fd-find added in custom.yml: nvim as the editor; fd is fd's own name on EL
+    - name: Verify | EL's full-update (dnf4 needs -r); nvidia-run (NVIDIA on); nvim as EDITOR
       ansible.builtin.assert:
         that:
           - "\"dnf needs-restarting -r'\" in _zshrc.stdout"
           - "'|| /usr/local/bin/nvidia-kmod-check; dnf needs-restarting -r' in _zshrc.stdout"
           - "'alias nvidia-run=' in _zshrc.stdout"
+          - "'export EDITOR=nvim' in _zshrc.stdout_lines and 'export VISUAL=nvim' in _zshrc.stdout_lines"
+          - "'alias fd=' not in _zshrc.stdout"
           - "'alias open-thevoid=' in _zshrc.stdout and 'alias close-thevoid=' in _zshrc.stdout"
         fail_msg: "{{ _zshrc.stdout }}"
         quiet: true
