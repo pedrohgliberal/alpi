@@ -357,3 +357,10 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   `failures`, whose upstream cases lacked the new default (test data only, fixed in `4a464a6`).
   `failures` passed when rerun alone on `4a464a6`; the user chose to tag without a second full run
   (`docs(todo): v1.8.0 tagged`).
+- **2026-11-17** `v1.9.0` tagged on `915e3f6`: AlmaLinux's NVIDIA driver on EL10 (`5046803`), and
+  neovim, ripgrep and fd-find with EDITOR/VISUAL plus Konsole's OSC 8 links (issues #1 and #2,
+  `915e3f6`). The full run on `915e3f6`'s code passed 19 of 23 scenarios. The two Ubuntu personal
+  scenarios lacked the new packages in their test data (added in `915e3f6`); `bootstrap` (Galaxy
+  refused the connection) and `services` (podman container state) failed transiently. All four
+  passed when rerun on `915e3f6`, and the user chose to tag without a second full run. Konsole's
+  file links were checked on noir (`docs(todo): v1.9.0 tagged`).
