@@ -1,0 +1,6 @@
+---
+# The feature turned off after a run: the picker keeps its list (selection.yml)
+features: {dns: false}
+dns_connections_selection:
+  0d5e0005-0000-4000-8000-000000000005: Previous
+  0d5e0006-0000-4000-8000-000000000006: Own

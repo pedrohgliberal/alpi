@@ -1,0 +1,120 @@
+---
+# Fixed DNS servers (feature 'dns'; group_vars/all/dns.yml, PROPOSAL "Decisions (2026-11-24)"):
+# only on the connections in alpi_dns_connections (the picker's choice, or custom.yml's
+# dns_connections), never on whatever is active now, so a run at work or in a hotel changes
+# nothing there. Feature off: the listed connections that still have exactly these servers get
+# their own DNS back. NetworkManager not running: nothing to do (and nothing to fail).
+
+- name: DNS | Listed connections
+  when: alpi_dns_connections | length > 0
+  block:
+    - name: DNS | Ask whether NetworkManager runs
+      ansible.builtin.command: nmcli -t -g RUNNING general
+      register: _dns_nm
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: DNS | Report NetworkManager not running
+      ansible.builtin.debug:
+        msg: NetworkManager is not running (or nmcli is missing), so the DNS servers were left alone.
+      when: _dns_nm.stdout | default('') != 'running'
+
+    - name: DNS | Set the servers
+      when: _dns_nm.stdout | default('') == 'running'
+      block:
+        # rc 10: no such connection (deleted since the picker saw it)
+        - name: DNS | Read the connections' DNS settings
+          ansible.builtin.command:
+            argv: [nmcli, -g, "{{ _dns_fields }}", connection, show, "{{ item.uuid }}"]
+          loop: "{{ alpi_dns_connections }}"
+          loop_control:
+            label: "{{ item.name }}"
+          register: _dns_read
+          changed_when: false
+          failed_when: _dns_read.rc not in [0, 10]
+          check_mode: false
+          vars:
+            _dns_fields: "ipv4.method,ipv4.dns,ipv4.ignore-auto-dns,ipv6.method,ipv6.dns,ipv6.ignore-auto-dns"
+
+        - name: DNS | List the active connections
+          ansible.builtin.command: nmcli -t -g UUID,DEVICE connection show --active
+          register: _dns_active
+          changed_when: false
+          check_mode: false
+
+        - name: DNS | Plan the changes
+          ansible.builtin.set_fact:
+            alpi_dns_plan: >-
+              {{ _dns_read.results | alpi_dns_plan(dns_ipv4, dns_ipv6, alpi_feature.dns | bool,
+                                                    _dns_active.stdout) }}
+
+        - name: DNS | Warn about connections that are gone
+          ansible.builtin.debug:
+            msg: >-
+              No such NetworkManager connection: {{ alpi_dns_plan.missing | join(', ') }}. Left out;
+              drop it from the list with ./pick.py (or dns_connections in custom.yml).
+          when: alpi_dns_plan.missing | length > 0
+
+        - name: DNS | Change the connections
+          ansible.builtin.command:
+            argv: "{{ ['nmcli', 'connection', 'modify', item.uuid] + item.args }}"
+          loop: "{{ alpi_dns_plan.modify }}"
+          loop_control:
+            label: "{{ item.name }}: {{ item.args | join(' ') }}"
+
+        # The change is already counted above; a device that cannot take it now gets it at the
+        # next connect
+        - name: DNS | Reapply on the active devices
+          ansible.builtin.command:
+            argv: [nmcli, device, reapply, "{{ item.device }}"]
+          loop: "{{ alpi_dns_plan.modify | selectattr('device') }}"
+          loop_control:
+            label: "{{ item.name }} ({{ item.device }})"
+          register: _dns_reapply
+          changed_when: false
+          failed_when: false
+
+        - name: DNS | Warn about devices that kept the old servers
+          ansible.builtin.debug:
+            msg: >-
+              {{ item.item.name }} ({{ item.item.device }}) still uses its old DNS servers
+              ({{ item.stderr | default('') | trim }}): reconnect it to use the new ones.
+          loop: "{{ _dns_reapply.results | default([]) | rejectattr('rc', 'equalto', 0) }}"
+          loop_control:
+            label: "{{ item.item.name }}"
+
+        - name: DNS | Report connections with their own DNS left alone (feature off)
+          ansible.builtin.debug:
+            msg: >-
+              The dns feature is off, but these connections have DNS servers other than ALPI's,
+              left as they are: {{ alpi_dns_plan.kept | join(', ') }}.
+          when: alpi_dns_plan.kept | length > 0
+
+# For the user's other connections; ALPI never runs it
+- name: DNS | alpi-dns
+  when: user_name != 'root'
+  block:
+    - name: DNS | Create ~/.local/bin
+      ansible.builtin.file:
+        path: "{{ dns_script | dirname }}"
+        state: directory
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0755'
+      when: alpi_feature.dns | bool
+
+    - name: DNS | Install alpi-dns
+      ansible.builtin.template:
+        src: alpi-dns.j2
+        dest: "{{ dns_script }}"
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        mode: '0755'
+      when: alpi_feature.dns | bool
+
+    - name: DNS | Remove alpi-dns (feature off)
+      ansible.builtin.file:
+        path: "{{ dns_script }}"
+        state: absent
+      when: not alpi_feature.dns | bool

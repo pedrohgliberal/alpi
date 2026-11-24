@@ -591,3 +591,33 @@ hand, then brought into ALPI. Everything below is set in `group_vars/os_AlmaLinu
    sudo systemctl disable --now switcheroo-control
    # the driver: dnf history undo <ID> of its install transaction, never a glob; then reboot
    ```
+
+## Decisions (2026-11-24)
+
+Fixed DNS servers (GitHub issue #3), the optional `dns` feature (off by default):
+
+1. **Only on chosen connections.** The servers (`dns_ipv4`, `dns_ipv6` in
+   `group_vars/all/dns.yml`: Cloudflare, then Google) go, with `ignore-auto-dns yes`, on the
+   NetworkManager connections listed for it, never on whatever is active when ALPI runs: a run at
+   work or in a hotel changes nothing there (internal DNS, captive portals). Dropped: a
+   NetworkManager dispatcher for every connection, and systemd-resolved split DNS.
+2. **The list lives in `selection.yml`.** When the feature is checked, `pick.py` offers the
+   connection in use (the active one on the default route's device, read from `/proc/net`; VPNs,
+   WireGuard, tunnels, bridges and loopback never, `dns_skip_types`) and saves it as
+   `dns_connections_selection` (`{uuid: name}`). The picker writes only `selection.yml`, never the
+   user's `custom.yml`; `dns_connections` there (UUIDs, or `{uuid: name}`) replaces the list, as
+   `custom.yml` wins elsewhere. The list stays when the feature is turned off.
+3. **`roles/dns`** (after `common`): reads each listed connection with `nmcli -g` and changes only
+   what differs, then `nmcli device reapply` where it is active (a device that refuses it gets the
+   servers at its next connect, with a message). An IP family whose method is `disabled` or
+   `ignore` is left alone: NetworkManager refuses `ipv4.dns`/`ipv6.dns` there (checked with 1.52 on
+   Debian 13 and 1.58 on AlmaLinux 10). A UUID with no connection only warns; NetworkManager not
+   running skips the role. Values from `nmcli -g` come with `:` escaped (`2606\:4700\:…`), and
+   addresses are compared in canonical form.
+4. **Off undoes what is ALPI's.** With the feature off, a listed connection that still has exactly
+   ALPI's servers and `ignore-auto-dns yes` gets its own DNS back (servers cleared,
+   `ignore-auto-dns no`); servers the user changed since stay, with a message.
+5. **`alpi-dns`** (`~/.local/bin`, the user's, rendered from the same variables; removed when the
+   feature is off): `alpi-dns [<connection>]`, `alpi-dns --off [<connection>]`, the connection in
+   use when none is named. ALPI never runs it. It does not edit ALPI's files: to have ALPI's runs
+   keep a connection, run `./pick.py` while connected to it.

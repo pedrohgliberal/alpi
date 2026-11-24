@@ -29,7 +29,7 @@ _golden:
   unavailable: [gstreamer1-plugins-bad-free-extras, vlc-plugins-freeworld, asusctl, supergfxctl, asusctl-rog-gui,
     mesa-va-drivers-freeworld]
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
-    intel: true, nvidia: true, steam: true, virtualbox: true}
+    dns: false, intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [brave-browser, gh-cli, code, virtualbox]
   # KDE forced with KWin 6.3.6: the cedilla layer is on, as on EL10
   flatpak_overrides: [com.rtosta.zapzap, com.bitwarden.desktop, us.zoom.Zoom, com.slack.Slack, com.spotify.Client]

@@ -1,0 +1,92 @@
+#!/bin/bash
+# {{ ansible_managed | default('Managed by ALPI') }} (roles/dns; dns feature, group_vars/all/dns.yml)
+# Fixed DNS servers on one NetworkManager connection. ALPI's runs set them only on the connections
+# chosen in its picker; this is for the others, by hand. ALPI never runs it.
+set -euo pipefail
+
+IPV4=({{ dns_ipv4 | map('quote') | join(' ') }})
+IPV6=({{ dns_ipv6 | map('quote') | join(' ') }})
+SKIP_TYPES=" {{ dns_skip_types | join(' ') }} "
+ALPI_DIR={{ playbook_dir | quote }}
+
+usage() {
+    cat <<EOF
+Usage: alpi-dns [--off] [<connection>]
+
+Sets fixed DNS servers on a NetworkManager connection, with its automatic (DHCP) servers ignored:
+  IPv4: ${IPV4[*]:-none}
+  IPv6: ${IPV6[*]:-none}
+<connection> is a name or UUID from 'nmcli connection show'; without one, the connection of the
+default route (VPNs, tunnels and bridges left out). --off gives it its own DNS back.
+EOF
+}
+
+die() { echo "alpi-dns: $*" >&2; exit 1; }
+# nmcli -g escapes ':' and '\' in values
+unescape() { sed 's/\\\(.\)/\1/g'; }
+
+off=0 flag=
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+    --off) off=1 flag="--off "; shift ;;
+    -*) usage >&2; exit 2 ;;
+esac
+[ $# -le 1 ] || { usage >&2; exit 2; }
+command -v nmcli >/dev/null || die "nmcli not found: NetworkManager manages no connections here"
+
+target=${1:-}
+if [ -z "$target" ]; then
+    # The default route's device (IPv4, else IPv6), then the active connection on it; the first
+    # active one when none is (a default route through a tunnel)
+    dev=$(awk '$2 == "00000000" && $8 == "00000000" { print $1; exit }' /proc/net/route 2>/dev/null || true)
+    [ -n "$dev" ] || dev=$(awk '$1 == "00000000000000000000000000000000" && $2 == "00" && $10 != "lo" { print $10; exit }' \
+        /proc/net/ipv6_route 2>/dev/null || true)
+    first=
+    while IFS=: read -r uuid type device; do
+        case "$SKIP_TYPES" in *" $type "*) continue ;; esac
+        [ -n "$first" ] || first=$uuid
+        if [ -n "$dev" ] && [ "$device" = "$dev" ]; then target=$uuid; break; fi
+    done < <(nmcli -t -g UUID,TYPE,DEVICE connection show --active)
+    target=${target:-$first}
+    [ -n "$target" ] || die "no active connection to set (VPNs, tunnels and bridges are left out); name one: alpi-dns <connection>"
+fi
+
+uuid=$(nmcli -g connection.uuid connection show "$target" 2>/dev/null) \
+    || die "no connection '$target' ('nmcli connection show' lists them)"
+name=$(nmcli -g connection.id connection show "$uuid" | unescape)
+
+args=()
+for fam in ipv4 ipv6; do
+    if [ "$fam" = ipv4 ]; then servers="${IPV4[*]}"; else servers="${IPV6[*]}"; fi
+    [ -n "$servers" ] || continue
+    method=$(nmcli -g "$fam.method" connection show "$uuid")
+    case "$method" in
+        disabled|ignore) echo "$fam is $method on '$name': left alone"; continue ;;
+    esac
+    if [ "$off" = 1 ]; then
+        args+=("$fam.dns" "" "$fam.ignore-auto-dns" no)
+    else
+        args+=("$fam.dns" "$servers" "$fam.ignore-auto-dns" yes)
+    fi
+done
+[ -n "${args[*]}" ] || die "nothing to change on '$name'"
+
+nmcli connection modify "$uuid" "${args[@]}" \
+    || die "NetworkManager refused the change: try sudo alpi-dns $flag$uuid"
+if [ "$off" = 1 ]; then
+    echo "'$name' uses its own DNS servers again."
+else
+    echo "'$name' uses ${IPV4[*]} ${IPV6[*]}"
+fi
+
+# Active now: apply without reconnecting
+device=$(nmcli -g GENERAL.DEVICES connection show "$uuid" | cut -d, -f1)
+if [ -n "$device" ]; then
+    nmcli device reapply "$device" >/dev/null \
+        || echo "Could not apply it to $device now: reconnect '$name'." >&2
+fi
+
+if [ "$off" = 0 ]; then
+    echo "ALPI's runs leave '$name' as it is. To have them keep it (and undo it when the dns feature"
+    echo "is turned off), run $ALPI_DIR/pick.py while connected to it."
+fi

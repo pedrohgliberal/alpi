@@ -26,12 +26,13 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   24.04) → user/hardware/DE facts, ported from
   AFPI → `group_by` into `family_<os_family>`, `os_<distro>`, `os_<distro>_<major>` → machine-settings assert →
   `tasks/resolve.yml`), then the roles (`repos`, `update`, `boot`, `memory`, `akmods_mok`, `virtualbox`,
-  `packages`, `upstream`, `common`, `zsh`, `desktop`, `pipx`, `ai_tools`, `clamav`, `asus`, `nvidia` so far),
+  `packages`, `upstream`, `common`, `dns`, `zsh`, `desktop`, `pipx`, `ai_tools`, `clamav`, `asus`, `nvidia` so far),
   then `tasks/reminders.yml` in `post_tasks` (tag `reminders`, not `always`, so `--tags resolve`
   stays quiet): the `gh auth login` reminder when `gh` is selected and `~/.config/gh/hosts.yml`
   has no `github.com:` (sets `alpi_gh_login_needed`), the OpenLogi agent reminder when
   `openlogi` is selected and the user's `graphical-session.target.wants/openlogi-agent.service`
-  link is missing (sets `alpi_openlogi_agent_needed`), and the disk swap reminder when
+  link is missing (sets `alpi_openlogi_agent_needed`), the `alpi-dns` reminder when `dns` is on,
+  and the disk swap reminder when
   `hibernate` is on and disk swap is smaller than RAM (`alpi_memory.hibernate_reminder`), then
   AAPI's final status banner (`alpi_final_status`; a run stopped by the reboot gate never gets
   there).
@@ -58,8 +59,11 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   resolve on the running distro/desktop; hardware features are not listed (vetoes in
   `custom.yml`). Groups by purpose and labels in `group_vars/all/picker.yml` (`picker_groups`,
   `picker_descriptions`): a new catalog id or feature goes in a group there with a description
-  (a unit test fails otherwise). The zsh aliases (`zsh_aliases` + `zsh_aliases_family` + `zsh_aliases_os`) are the last
-  group, "Shell aliases (zsh)", their commands rendered with jinja2 (`show_command`: the user's
+  (a unit test fails otherwise). With the `dns` feature checked it offers the NetworkManager
+  connection in use (`current_connection`: the default route's device from `/proc/net`, never a
+  `dns_skip_types` one; `nmcli -t` fields unescaped by `nm_fields`) and keeps the confirmed ones
+  in `dns_connections_selection` (`{uuid: name}`, kept when the feature goes off). The zsh
+  aliases (`zsh_aliases` + `zsh_aliases_family` + `zsh_aliases_os`) are the last group, "Shell aliases (zsh)", their commands rendered with jinja2 (`show_command`: the user's
   home as `~`, unknown names as `<name>`), saved as `zsh_aliases_selection`. `visible()`: an
   item is hidden while an id in its `requires` (aliases: zsh and their own) is listed and
   unchecked, keeping its check; the menu, the checklists and the text list (reprinted when the
@@ -339,6 +343,18 @@ parity; code comes in step by step, ported from them. Changes made there in the 
   (`nvidia_open_modules_only`: AlmaLinux 10), with a message (`alpi_nvidia_unsupported`).
   `is_intel_panel` (only looked up with NVIDIA): an i915/xe card in `/sys/class/drm` with an eDP
   connector, i.e. a hybrid laptop whose built-in panel hangs off the iGPU.
+- `roles/dns` (after `common`; feature `dns`, off; issue #3, PROPOSAL "Decisions (2026-11-24)"):
+  `dns_ipv4`/`dns_ipv6` (`group_vars/all/dns.yml`) with `ignore-auto-dns yes` only on
+  `alpi_dns_connections` (`resolve.yml`: custom.yml's `dns_connections`, a list of UUIDs or
+  `{uuid: name}`, replaces the picker's `dns_connections_selection`; `alpi_dns_invalid` checks
+  addresses and UUIDs), never on the active connection as such. `alpi_dns_plan` reads `nmcli -g`
+  (`:` escaped as `\:`; addresses compared canonically): on, each family whose method is not
+  `disabled`/`ignore` (NetworkManager refuses `dns` there) gets the servers; off, a family with
+  exactly ALPI's servers gets its own DNS back, anything else is kept with a message. Then
+  `nmcli connection modify` and `device reapply` where active (failure only warns); a gone UUID
+  (rc 10) warns; NetworkManager not running skips. `alpi-dns` (`dns_script`,
+  `templates/alpi-dns.j2`) for the user while the feature is on, removed when off; never run by
+  ALPI. Nothing to do without listed connections.
 - `roles/common`: hostname (only when `system_hostname` is set) and the git
   identity/defaults in the user's `~/.gitconfig` (`group_vars/all/machine.yml`, values from
   `bootstrap.yml`; validated in `env_setup.yml`).
@@ -476,6 +492,14 @@ parity; code comes in step by step, ported from them. Changes made there in the 
     rules and two-device line removed on alpi-svc-skip; on
     Debian 13 too, built from `shared/Dockerfile-systemd-apt.j2`, the systemd image for any apt
     instance that needs services: Debian and Ubuntu publish no init image),
+    `dns` (env_setup + `roles/dns` + `tasks/reminders.yml` against a real NetworkManager, with
+    `capabilities: [NET_ADMIN]` so a dummy device comes up; profiles with fixed UUIDs from
+    `prepare.yml`: on AlmaLinux 10 the feature on, an inactive profile, an active dummy with IPv6
+    disabled (reapplied: the device's `IP4.DNS`), one with `ipv6.method ignore`, a listed UUID
+    with no profile (warned) and an unlisted one left alone; verify runs `alpi-dns` on a named
+    connection, `--off`, without a name and on an unknown one. On Debian 13 the feature off:
+    ALPI's servers restored, the user's kept, an unlisted profile with ALPI's servers untouched,
+    an earlier run's script removed),
     `asus` (env_setup + `roles/asus` on Fedora 44 with systemd, built from the scenario's
     `Dockerfile.j2` since Fedora has no init image; stand-in supergfxd unit and launcher in
     `prepare.yml`: everything selected, and supergfxctl + GUI skipped), `update` (repos +

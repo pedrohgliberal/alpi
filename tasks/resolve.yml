@@ -14,6 +14,8 @@
 #   alpi_cedilla_xwayland: run Chromium/Electron apps on XWayland for the cedilla (KDE with an
 #                    older KWin; cedilla_xwayland in group_vars/all/desktop.yml)
 #   alpi_flatpak_overrides: [{app, flags, reset_if}] for the selected Flatpak apps (roles/packages)
+#   alpi_dns_connections: [{uuid, name}] the connections roles/dns manages (the picker's, or
+#                    custom.yml's dns_connections)
 
 - name: Resolve | Merge features
   ansible.builtin.set_fact:
@@ -189,6 +191,19 @@
       '{{ zram_size }}'), hibernate true or false (not '{{ hibernate }}').
     quiet: true
 
+# dns_connections (custom.yml) replaces the picker's list; null means unset
+- name: Resolve | Select DNS connections
+  ansible.builtin.set_fact:
+    alpi_dns_connections: "{{ dns_connections | default(none) | alpi_dns_connections(dns_connections_selection | default({})) }}"
+
+- name: Resolve | Check the DNS settings
+  ansible.builtin.assert:
+    that: _errors | length == 0
+    fail_msg: "Invalid DNS settings (group_vars/all/dns.yml, host_vars/127.0.0.1/): {{ _errors | join(' ') }}"
+    quiet: true
+  vars:
+    _errors: "{{ dns_ipv4 | alpi_dns_invalid(dns_ipv6, alpi_dns_connections) }}"
+
 # Again after roles/update, which may upgrade KWin (tasks/cedilla.yml)
 - name: Resolve | Cedilla on XWayland and Flatpak overrides
   ansible.builtin.import_tasks: cedilla.yml
@@ -209,3 +224,4 @@
       repos: "{{ alpi_repos_enabled | map(attribute='id') }}"
       flatpak_overrides: "{{ alpi_flatpak_overrides | map(attribute='app') }}"
       cedilla_xwayland: "{{ alpi_cedilla_xwayland }} (KWin {{ kwin_version | default('') or 'not found' }})"
+      dns_connections: "{{ alpi_dns_connections | map(attribute='name') }}"

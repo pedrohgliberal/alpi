@@ -1,0 +1,107 @@
+---
+- name: Verify | Fixed DNS servers
+  hosts: all
+  gather_facts: false
+  vars:
+    _dnsv_v4: 1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4
+    _dnsv_v6: 2606:4700:4700::1111,2606:4700:4700::1001,2001:4860:4860::8888,2001:4860:4860::8844
+    _dnsv_script: /home/alpi/.local/bin/alpi-dns
+    # connection -> [ipv4.dns, ipv4.ignore-auto-dns, ipv6.dns, ipv6.ignore-auto-dns], colons unescaped
+    _dnsv_expected:
+      alpi-dns-on:
+        Home: ["{{ _dnsv_v4 }}", "yes", "{{ _dnsv_v6 }}", "yes"]
+        Dummy: ["{{ _dnsv_v4 }}", "yes", "", "no"]
+        V6 ignored: ["{{ _dnsv_v4 }}", "yes", "", "no"]
+        Other: ["10.0.0.53", "yes", "", "no"]
+      alpi-dns-off:
+        Previous: ["", "no", "", "no"]
+        Own: ["9.9.9.9", "yes", "", "no"]
+        Other: ["{{ _dnsv_v4 }}", "yes", "", "no"]
+  tasks:
+    - name: Verify | Read the connections
+      ansible.builtin.command:
+        argv: [nmcli, -g, "ipv4.dns,ipv4.ignore-auto-dns,ipv6.dns,ipv6.ignore-auto-dns", connection, show, "{{ item }}"]
+      loop: "{{ _dnsv_expected[inventory_hostname].keys() | list }}"
+      register: _dnsv_read
+      changed_when: false
+
+    - name: Verify | Each connection as expected
+      ansible.builtin.assert:
+        that: _got == _dnsv_expected[inventory_hostname][item.item]
+        fail_msg: "{{ item.item }}: expected {{ _dnsv_expected[inventory_hostname][item.item] }}, got {{ _got }}"
+        quiet: true
+      loop: "{{ _dnsv_read.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      vars:
+        _bs: "\\"
+        _got: "{{ item.stdout_lines | map('replace', _bs ~ ':', ':') | list }}"
+
+- name: Verify | DNS on (AlmaLinux 10)
+  hosts: alpi-dns-on
+  gather_facts: false
+  vars:
+    _dnsv_script: /home/alpi/.local/bin/alpi-dns
+  tasks:
+    # The reapply reached the running device, not only the profile
+    - name: Verify | dummy0 uses the servers now
+      ansible.builtin.command: nmcli -g IP4.DNS device show dummy0
+      register: _dnsv_dummy
+      changed_when: false
+      failed_when: "'1.1.1.1' not in _dnsv_dummy.stdout"
+
+    - name: Verify | alpi-dns installed for alpi
+      ansible.builtin.stat:
+        path: "{{ _dnsv_script }}"
+      register: _dnsv_stat
+      failed_when: >-
+        not _dnsv_stat.stat.exists or _dnsv_stat.stat.pw_name != 'alpi' or _dnsv_stat.stat.mode != '0755'
+
+    - name: Verify | alpi-dns on a named connection, then off again
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          {{ _dnsv_script }} Other
+          nmcli -g ipv4.dns,ipv6.dns connection show Other
+          {{ _dnsv_script }} --off Other
+          nmcli -g ipv4.dns,ipv6.dns,ipv4.ignore-auto-dns connection show Other
+        executable: /bin/bash
+      register: _dnsv_named
+      changed_when: false
+
+    - name: Verify | alpi-dns set and cleared Other
+      ansible.builtin.assert:
+        that:
+          - _lines[1] == '1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4'
+          - _lines[2] is search('2606\\\\:4700')
+          - _lines[3:] == ["'Other' uses its own DNS servers again.", '', '', 'no']
+        fail_msg: "{{ _dnsv_named.stdout_lines }}"
+        quiet: true
+      vars:
+        _lines: "{{ _dnsv_named.stdout_lines | reject('match', '^ALPI|^is turned off|^run ') | list }}"
+
+    # No default route through a usable connection here (pasta's is a tun device): the first
+    # active one, Dummy, whose IPv6 is disabled
+    - name: Verify | alpi-dns without a name takes the connection in use
+      ansible.builtin.command: "{{ _dnsv_script }} --off"
+      register: _dnsv_current
+      changed_when: false
+      failed_when: >-
+        _dnsv_current.rc != 0 or "ipv6 is disabled on 'Dummy': left alone" not in _dnsv_current.stdout
+        or "'Dummy' uses its own DNS servers again." not in _dnsv_current.stdout
+
+    - name: Verify | alpi-dns refuses an unknown connection
+      ansible.builtin.command: "{{ _dnsv_script }} Nope"
+      register: _dnsv_unknown
+      changed_when: false
+      failed_when: _dnsv_unknown.rc != 1 or "no connection 'Nope'" not in _dnsv_unknown.stderr
+
+- name: Verify | DNS off (Debian 13)
+  hosts: alpi-dns-off
+  gather_facts: false
+  tasks:
+    - name: Verify | alpi-dns removed
+      ansible.builtin.stat:
+        path: /home/alpi/.local/bin/alpi-dns
+      register: _dnsv_off_stat
+      failed_when: _dnsv_off_stat.stat.exists

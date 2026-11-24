@@ -37,8 +37,9 @@ def ids(items):
 def test_fedora_lists_everything_but_hardware_and_feature_packages():
     data, (features, packages) = real_choices("Fedora", "45")
     assert ids(features) == ["steam", "clamav", "virtualbox", "claude_code", "antigravity_cli",
-                             "antigravity_ide"]
-    assert all(c.default for c in features)
+                             "antigravity_ide", "dns"]
+    assert all(c.default for c in features if c.id != "dns")
+    assert not next(c for c in features if c.id == "dns").default
     owned = {i for v in data["feature_packages"].values() for i in v}
     assert not owned & set(ids(packages))
     assert {"vim", "chkrootkit", "multimedia", "telegram"} <= set(ids(packages))
@@ -414,11 +415,13 @@ def test_main_writes_the_selection_and_keeps_it_on_the_next_run(tmp_path, monkey
     rc, sel = run_main(tmp_path, monkeypatch, "fedora", ["-steam -tmux +chkrootkit -lls", ""])
     assert rc == 0
     assert sel == {"packages_selection_add": [], "packages_selection_skip": ["tmux"],
-                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"lls": False}}
+                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"lls": False},
+                   "dns_connections_selection": {}}
     # Second run, on EL with KDE: Steam is not listed there, its saved veto stays
     rc, sel = run_main(tmp_path, monkeypatch, "el10", ["-ktorrent", ""], xdg="KDE")
     assert sel == {"packages_selection_add": [], "packages_selection_skip": ["tmux", "ktorrent"],
-                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"lls": False}}
+                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"lls": False},
+                   "dns_connections_selection": {}}
 
 
 def test_load_data_layers_the_family_before_the_distro(tmp_path):
@@ -426,6 +429,7 @@ def test_load_data_layers_the_family_before_the_distro(tmp_path):
     files = {
         "all/catalog.yml": "{}", "all/packages.yml": "{}", "all/features.yml": "{}",
         "all/picker.yml": "{}", "all/zsh.yml": "{}", "all/ai_tools.yml": "{}", "all/desktop.yml": "{}",
+        "all/dns.yml": "{}",
         "family_RedHat/main.yml": "family_key: rpm\nlayer: family\n",
         "family_Debian/main.yml": "debian_key: deb\n",
         "os_Fedora/main.yml": "layer: distro\n",
@@ -505,7 +509,8 @@ def test_main_on_debian_lists_debian_names(tmp_path, monkeypatch, capsys):
     rc, sel = run_main(tmp_path, monkeypatch, "debian", ["-steam -tmux -full-update", ""])
     assert rc == 0
     assert sel == {"packages_selection_add": [], "packages_selection_skip": ["tmux"],
-                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"full-update": False}}
+                   "features_selection": {"steam": False}, "zsh_aliases_selection": {"full-update": False},
+                   "dns_connections_selection": {}}
     shown = "".join(capsys.readouterr())
     assert "steam-installer" in shown and "sudo apt full-upgrade -y" in shown
 
@@ -513,3 +518,87 @@ def test_main_on_debian_lists_debian_names(tmp_path, monkeypatch, capsys):
 def test_debian_tries_the_deb_key_before_all():
     assert pick.load_data(ROOT, "Debian", "13")["alpi_catalog_keys"] == ["debian13", "debian", "deb", "all"]
     assert pick.load_data(ROOT, "Ubuntu", "26")["alpi_catalog_keys"] == ["ubuntu2604", "ubuntu", "deb", "all"]
+
+
+# --- Fixed DNS: the connection in use -------------------------------------------------------
+
+HOME = {"uuid": "11111111-2222-4333-8444-555555555555", "name": "Home: 5G", "type": "802-11-wireless",
+        "device": "wlp2s0"}
+VPN = {"uuid": "66666666-2222-4333-8444-555555555555", "name": "Work VPN", "type": "vpn", "device": "wlp2s0"}
+WG = {"uuid": "77777777-2222-4333-8444-555555555555", "name": "wg0", "type": "wireguard", "device": "wg0"}
+WIRED = {"uuid": "88888888-2222-4333-8444-555555555555", "name": "Wired", "type": "802-3-ethernet",
+         "device": "enp3s0"}
+SKIP = ["vpn", "wireguard", "tun", "bridge", "loopback"]
+
+
+def test_nm_fields_unescapes_colons_and_backslashes():
+    assert pick.nm_fields(r"1111:Home\: 5G\\x:802-11-wireless:wlp2s0") == [
+        "1111", "Home: 5G\\x", "802-11-wireless", "wlp2s0"]
+    assert pick.nm_fields("a::c") == ["a", "", "c"]
+
+
+def test_default_route_devices_reads_ipv4_then_ipv6(tmp_path):
+    (tmp_path / "route").write_text(
+        "Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT\n"
+        "wg0\t0000000A\t00000000\t0001\t0\t0\t0\t000000FF\t0\t0\t0\n"
+        "wlp2s0\t00000000\t0102A8C0\t0003\t0\t0\t600\t00000000\t0\t0\t0\n")
+    (tmp_path / "ipv6_route").write_text(
+        "00000000000000000000000000000000 00 00000000000000000000000000000000 00 "
+        "fe800000000000000000000000000001 00000400 00000001 00000000 00000003 enp3s0\n"
+        "00000000000000000000000000000000 00 00000000000000000000000000000000 00 "
+        "00000000000000000000000000000000 ffffffff 00000001 00000000 00200200 lo\n")
+    assert pick.default_route_devices(tmp_path) == ["wlp2s0", "enp3s0"]
+    assert pick.default_route_devices(tmp_path / "missing") == []
+
+
+def test_active_connections_parses_nmcli_and_survives_without_it():
+    class R:
+        returncode, stdout = 0, "11111111-2222-4333-8444-555555555555:Home\\: 5G:802-11-wireless:wlp2s0\n"
+    assert pick.active_connections(lambda *a, **k: R) == [HOME]
+    def missing(*a, **k):
+        raise FileNotFoundError("nmcli")
+    assert pick.active_connections(missing) == []
+    class Failed:
+        returncode, stdout = 8, ""
+    assert pick.active_connections(lambda *a, **k: Failed) == []
+
+
+def test_current_connection_follows_the_default_route_and_skips_tunnels():
+    # The VPN shares the Wi-Fi's device: never picked, the Wi-Fi under it is
+    assert pick.current_connection([VPN, WIRED, HOME], ["wlp2s0"], SKIP) == HOME
+    # Default route through a tunnel: the first usable active connection
+    assert pick.current_connection([WG, WIRED, HOME], ["wg0"], SKIP) == WIRED
+    assert pick.current_connection([WG, VPN], ["wg0"], SKIP) is None
+    assert pick.current_connection([], [], SKIP) is None
+
+
+def test_dns_connections_asks_before_adding_and_keeps_the_saved_ones():
+    asked, said = [], []
+    saved = {WIRED["uuid"]: "Wired"}
+    out = pick.dns_connections(HOME, saved, lambda q: asked.append(q) or True, said.append)
+    assert out == {WIRED["uuid"]: "Wired", HOME["uuid"]: "Home: 5G"}
+    assert "'Home: 5G'" in asked[0] and saved == {WIRED["uuid"]: "Wired"}
+    assert pick.dns_connections(HOME, saved, lambda q: False, said.append) == saved
+    # Already listed: not asked again, its name refreshed
+    out = pick.dns_connections(dict(HOME, name="Home 5G"), out, lambda q: pytest.fail("asked"), said.append)
+    assert out[HOME["uuid"]] == "Home 5G" and "already listed" in said[-1]
+    # Nothing active: the list as it was, and a note
+    assert pick.dns_connections(None, saved, lambda q: pytest.fail("asked"), said.append) == saved
+    assert "No active NetworkManager connection" in said[-1]
+
+
+def test_main_saves_the_dns_connection_and_keeps_it_when_the_feature_goes_off(tmp_path, monkeypatch):
+    monkeypatch.setattr(pick, "active_connections", lambda: [VPN, HOME])
+    monkeypatch.setattr(pick, "default_route_devices", lambda: ["wlp2s0"])
+    rc, sel = run_main(tmp_path, monkeypatch, "fedora", ["+dns", "", "y"])
+    assert rc == 0
+    assert sel["features_selection"] == {"dns": True}
+    assert sel["dns_connections_selection"] == {HOME["uuid"]: "Home: 5G"}
+    # Off again: the list stays, so the playbook can give those connections their own DNS back
+    rc, sel = run_main(tmp_path, monkeypatch, "fedora", ["-dns", ""])
+    assert sel["features_selection"] == {}
+    assert sel["dns_connections_selection"] == {HOME["uuid"]: "Home: 5G"}
+    # On again, from another connection, refused: only the saved one
+    monkeypatch.setattr(pick, "active_connections", lambda: [WIRED])
+    rc, sel = run_main(tmp_path, monkeypatch, "fedora", ["+dns", "", "n"])
+    assert sel["dns_connections_selection"] == {HOME["uuid"]: "Home: 5G"}

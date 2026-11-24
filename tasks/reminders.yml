@@ -50,6 +50,17 @@
           - "or turn on Settings > General > Launch at login in OpenLogi. Quit Solaar first if it runs."
       when: alpi_openlogi_agent_needed
 
+# roles/dns sets the servers only on the connections listed for it (the picker's choice)
+- name: DNS | Remind about the other connections
+  ansible.builtin.debug:
+    msg:
+      - "Fixed DNS servers on: {{ _names | join(', ') or 'no connection yet (./pick.py offers the current one)' }}."
+      - "Other connections keep their own DNS. As {{ user_name }}: 'alpi-dns' sets the servers on the current connection, 'alpi-dns <name>' on another, 'alpi-dns --off [<name>]' undoes it."
+  vars:
+    # Without the connections roles/dns found gone (alpi_dns_plan is unset when it did not look)
+    _names: "{{ alpi_dns_connections | map(attribute='name') | reject('in', alpi_dns_plan.missing | default([])) | list }}"
+  when: alpi_feature.dns | bool and user_name != 'root'
+
 # roles/memory reports it (alpi_memory); a skipped role leaves it undefined
 - name: Memory | Remind about disk swap for hibernation
   ansible.builtin.debug:

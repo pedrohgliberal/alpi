@@ -24,6 +24,9 @@
     zram: "{{ _case.zram | default('auto') }}"
     zram_size: "{{ _case.zram_size | default('') }}"
     hibernate: "{{ _case.hibernate | default(false) }}"
+    dns_ipv4: "{{ _case.dns_ipv4 | default(['1.1.1.1']) }}"
+    dns_ipv6: "{{ _case.dns_ipv6 | default([]) }}"
+    dns_connections: "{{ _case.dns_connections | default(none) }}"
   block:
     - name: "Case | {{ _case.name }} | Save upstream_sources"
       ansible.builtin.set_fact:

@@ -1,0 +1,78 @@
+---
+- name: Prepare | Shared
+  ansible.builtin.import_playbook: ../shared/prepare.yml
+
+- name: Prepare | NetworkManager and its connections
+  hosts: all
+  gather_facts: true
+  vars:
+    _v4: 1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4
+    _v6: 2606:4700:4700::1111 2606:4700:4700::1001 2001:4860:4860::8888 2001:4860:4860::8844
+    # name, uuid, then nmcli connection add's settings
+    _connections:
+      alpi-dns-on:
+        - [Home, 0d5e0001-0000-4000-8000-000000000001, [type, ethernet, ifname, nosuch0, autoconnect, "no"]]
+        - [Dummy, 0d5e0002-0000-4000-8000-000000000002, [type, dummy, ifname, dummy0, ipv4.method, manual,
+            ipv4.addresses, 10.9.9.2/24, ipv6.method, disabled]]
+        - [V6 ignored, 0d5e0003-0000-4000-8000-000000000003, [type, ethernet, ifname, nosuch1, autoconnect, "no",
+            ipv6.method, ignore]]
+        - [Other, 0d5e0004-0000-4000-8000-000000000004, [type, ethernet, ifname, nosuch2, autoconnect, "no",
+            ipv4.dns, 10.0.0.53, ipv4.ignore-auto-dns, "yes"]]
+      alpi-dns-off:
+        - [Previous, 0d5e0005-0000-4000-8000-000000000005, [type, ethernet, ifname, nosuch0, autoconnect, "no",
+            ipv4.dns, "{{ _v4 }}", ipv4.ignore-auto-dns, "yes", ipv6.dns, "{{ _v6 }}", ipv6.ignore-auto-dns, "yes"]]
+        - [Own, 0d5e0006-0000-4000-8000-000000000006, [type, ethernet, ifname, nosuch1, autoconnect, "no",
+            ipv4.dns, 9.9.9.9, ipv4.ignore-auto-dns, "yes"]]
+        - [Other, 0d5e0004-0000-4000-8000-000000000004, [type, ethernet, ifname, nosuch2, autoconnect, "no",
+            ipv4.dns, "{{ _v4 }}", ipv4.ignore-auto-dns, "yes"]]
+  tasks:
+    - name: Prepare | Install NetworkManager
+      ansible.builtin.package:
+        name: "{{ 'network-manager' if ansible_facts['os_family'] == 'Debian' else 'NetworkManager' }}"
+        state: present
+
+    - name: Prepare | Start NetworkManager
+      ansible.builtin.systemd_service:
+        name: NetworkManager
+        state: started
+
+    - name: Prepare | Wait for NetworkManager
+      ansible.builtin.command: nmcli -t -g RUNNING general
+      register: _nm
+      until: _nm.stdout == 'running'
+      retries: 15
+      delay: 1
+      changed_when: false
+
+    - name: Prepare | Connections
+      ansible.builtin.command:
+        argv: "{{ ['nmcli', 'connection', 'add', 'con-name', item[0], 'connection.uuid', item[1]] + item[2] }}"
+      loop: "{{ _connections[inventory_hostname] }}"
+      loop_control:
+        label: "{{ item[0] }}"
+
+    - name: Prepare | Bring up the dummy connection
+      ansible.builtin.command: nmcli connection up Dummy
+      when: inventory_hostname == 'alpi-dns-on'
+
+    - name: Prepare | User alpi
+      ansible.builtin.user:
+        name: alpi
+        uid: 1000
+
+    - name: Prepare | alpi's ~/.local/bin
+      ansible.builtin.file:
+        path: /home/alpi/.local/bin
+        state: directory
+        owner: alpi
+        mode: '0755'
+      when: inventory_hostname == 'alpi-dns-off'
+
+    # An earlier run's script, which the feature turned off must remove
+    - name: Prepare | An earlier run's alpi-dns
+      ansible.builtin.copy:
+        dest: /home/alpi/.local/bin/alpi-dns
+        content: "#!/bin/bash\n"
+        owner: alpi
+        mode: '0755'
+      when: inventory_hostname == 'alpi-dns-off'

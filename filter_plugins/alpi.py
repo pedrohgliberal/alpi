@@ -671,6 +671,138 @@ def alpi_release_headers(url, token=""):
     return headers
 
 
+_UUID_RE = re.compile(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")
+# NetworkManager refuses ipv4.dns/ipv6.dns on these methods ("not allowed for 'method=…'"):
+# that IP family is left alone
+_DNS_NO_SERVERS = ("disabled", "ignore")
+# nmcli -g's fields for alpi_dns_plan, one per line (the last is never empty)
+DNS_FIELDS = ("ipv4.method", "ipv4.dns", "ipv4.ignore-auto-dns",
+              "ipv6.method", "ipv6.dns", "ipv6.ignore-auto-dns")
+
+
+def _nm_values(text):
+    """One field of nmcli's -g output as a list: split on unescaped commas, then '\\:' and '\\\\'
+    unescaped (IPv6 addresses come out as 2606\\:4700\\:…)."""
+    out, cur, i, text = [], "", 0, str(text or "")
+    while i < len(text):
+        if text[i] == "\\" and i + 1 < len(text):
+            cur, i = cur + text[i + 1], i + 2
+            continue
+        if text[i] == ",":
+            out.append(cur)
+            cur = ""
+        else:
+            cur += text[i]
+        i += 1
+    out.append(cur)
+    return [v.strip() for v in out if v.strip()]
+
+
+def _ip_key(value):
+    """An address in a form that compares equal however it is written."""
+    import ipaddress
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        return value
+
+
+def alpi_dns_connections(custom, selection):
+    """The connections roles/dns manages, as [{uuid, name}].
+
+    custom (dns_connections in custom.yml: a list of UUIDs or {uuid: name}; None when unset)
+    replaces selection (dns_connections_selection in selection.yml, {uuid: name}, written by the
+    picker).
+    """
+    source = selection if custom is None else custom
+    if isinstance(source, dict):
+        items = [(str(u), str(n or u)) for u, n in source.items()]
+    else:
+        items = [(str(u), str(u)) for u in source or []]
+    seen, out = set(), []
+    for uuid, name in items:
+        if uuid.lower() not in seen:
+            seen.add(uuid.lower())
+            out.append({"uuid": uuid, "name": name})
+    return out
+
+
+def alpi_dns_invalid(ipv4, ipv6, connections):
+    """Messages for invalid DNS settings: dns_ipv4/dns_ipv6 must be lists of addresses of their
+    family (at least one server in all), connections ([{uuid, name}]) must carry UUIDs."""
+    import ipaddress
+    errors = []
+    for key, value, cls in (("dns_ipv4", ipv4, ipaddress.IPv4Address),
+                            ("dns_ipv6", ipv6, ipaddress.IPv6Address)):
+        if not isinstance(value, list):
+            errors.append(f"{key} must be a list of addresses, not '{value}'.")
+            continue
+        bad = []
+        for v in value:
+            try:
+                cls(str(v))
+            except ValueError:
+                bad.append(str(v))
+        if bad:
+            errors.append(f"{key} has invalid addresses: {', '.join(bad)}.")
+    if not errors and not ipv4 and not ipv6:
+        errors.append("dns_ipv4 and dns_ipv6 are both empty: no servers to set.")
+    bad = [c["uuid"] for c in connections or [] if not _UUID_RE.fullmatch(c["uuid"])]
+    if bad:
+        errors.append(f"DNS connections must be NetworkManager UUIDs (nmcli -g UUID,NAME connection "
+                      f"show): {', '.join(bad)}.")
+    return errors
+
+
+def alpi_dns_plan(reads, ipv4, ipv6, on, active=""):
+    """What roles/dns changes on its connections.
+
+    reads: the role's registered loop results, each with item {uuid, name}, rc and stdout (nmcli
+    -g DNS_FIELDS connection show <uuid>; rc 10 = no such connection). active: nmcli -t -g
+    UUID,DEVICE connection show --active. on: the dns feature.
+    On: each IP family whose method allows servers gets its servers, in order, with
+    ignore-auto-dns yes (a family with no servers configured is left alone). Off: a family that
+    still has exactly these servers and ignore-auto-dns yes gets its own DNS back (servers
+    cleared, ignore-auto-dns no); anything else is the user's and stays.
+    Returns {modify: [{uuid, name, args, device}], missing: [names], kept: [names]}.
+    """
+    devices = {}
+    for line in str(active or "").splitlines():
+        uuid, _, device = line.partition(":")
+        if device and uuid not in devices:
+            devices[uuid] = device
+    want = {"ipv4": [str(a) for a in ipv4 or []], "ipv6": [str(a) for a in ipv6 or []]}
+    plan = {"modify": [], "missing": [], "kept": []}
+    for r in reads or []:
+        item = r["item"]
+        if r.get("rc") != 0:
+            plan["missing"].append(item["name"])
+            continue
+        lines = str(r.get("stdout", "")).split("\n")
+        lines += [""] * (len(DNS_FIELDS) - len(lines))
+        got = dict(zip(DNS_FIELDS, lines))
+        args, kept = [], False
+        for fam in ("ipv4", "ipv6"):
+            servers = want[fam]
+            if not servers or got[f"{fam}.method"].strip() in _DNS_NO_SERVERS:
+                continue
+            current = [_ip_key(v) for v in _nm_values(got[f"{fam}.dns"])]
+            ignore = got[f"{fam}.ignore-auto-dns"].strip() == "yes"
+            ours = current == [_ip_key(s) for s in servers] and ignore
+            if on and not ours:
+                args += [f"{fam}.dns", " ".join(servers), f"{fam}.ignore-auto-dns", "yes"]
+            elif not on and ours:
+                args += [f"{fam}.dns", "", f"{fam}.ignore-auto-dns", "no"]
+            elif not on and (current or ignore):
+                kept = True
+        if args:
+            plan["modify"].append({"uuid": item["uuid"], "name": item["name"], "args": args,
+                                   "device": devices.get(item["uuid"], "")})
+        if kept:
+            plan["kept"].append(item["name"])
+    return plan
+
+
 class FilterModule(object):
     def filters(self):
         return {
@@ -699,4 +831,7 @@ class FilterModule(object):
             "alpi_upstream_missing": alpi_upstream_missing,
             "alpi_upstream_package_current": alpi_upstream_package_current,
             "alpi_release_headers": alpi_release_headers,
+            "alpi_dns_connections": alpi_dns_connections,
+            "alpi_dns_invalid": alpi_dns_invalid,
+            "alpi_dns_plan": alpi_dns_plan,
         }

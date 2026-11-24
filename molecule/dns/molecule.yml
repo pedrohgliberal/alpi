@@ -1,0 +1,31 @@
+---
+# roles/dns (fixed DNS servers on the connections chosen in the picker) and tasks/reminders.yml,
+# after env_setup, against a real NetworkManager. AlmaLinux publishes an init image; Debian's
+# instance is built from shared/Dockerfile-systemd-apt.j2. NET_ADMIN (inside the container's own
+# network namespace) lets NetworkManager bring up a dummy device, so a reapply is exercised.
+#   alpi-dns-on:  dns on; listed: Home (inactive), Dummy (active, IPv6 disabled), V6 ignored
+#                 (ipv6.method ignore) and a UUID with no connection (warned, not fatal); Other is
+#                 not listed and keeps its own DNS. alpi-dns installed for alpi; verify runs it.
+#   alpi-dns-off: dns off on Debian 13; listed: Previous (ALPI's servers: its own DNS back) and Own
+#                 (the user's servers: kept); Other has ALPI's servers but is not listed: kept. An
+#                 earlier run's alpi-dns removed.
+platforms:
+  - name: alpi-dns-on
+    image: docker.io/almalinux/10-init
+    pre_build_image: true
+    command: /sbin/init
+    systemd: always
+    capabilities: [NET_ADMIN]
+    volumes: ["alpi-dnf-dns-on:/var/cache/dnf"]
+  - name: alpi-dns-off
+    image: docker.io/library/debian:13
+    pre_build_image: false
+    dockerfile: ../shared/Dockerfile-systemd-apt.j2
+    command: /sbin/init
+    systemd: always
+    capabilities: [NET_ADMIN]
+    volumes: ["alpi-dnf-dns-off:/var/cache/apt"]
+provisioner:
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml

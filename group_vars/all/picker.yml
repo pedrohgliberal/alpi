@@ -12,7 +12,7 @@ picker_groups:
   - title: Security
     ids: [clamav, chkrootkit, lynis, rkhunter, unhide]
   - title: Internet & chat
-    ids: [brave, chromium, google-chrome, discord, telegram, slack, zapzap, zoom]
+    ids: [dns, brave, chromium, google-chrome, discord, telegram, slack, zapzap, zoom]
   - title: Office & productivity
     ids: [libreoffice, zotero, bitwarden, markitdown, pdf2docx, notebooklm-py]
   - title: Graphics & media
@@ -61,6 +61,7 @@ picker_descriptions:
   rkhunter: Rootkit Hunter
   unhide: Hidden process and port finder
   # Internet & chat
+  dns: Fixed DNS (Cloudflare, Google) on the current connection; alpi-dns for others
   brave: Brave browser
   chromium: Chromium browser
   google-chrome: Google Chrome browser

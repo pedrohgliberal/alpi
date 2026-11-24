@@ -39,6 +39,8 @@
     # After packages: software the distro does not package, from its vendor's releases
     - { role: upstream, tags: [upstream] }
     - { role: common, tags: [common] }
+    # Fixed DNS servers on the connections chosen in the picker, and the alpi-dns script
+    - { role: dns, tags: [dns] }
     - { role: zsh, tags: [zsh] }
     - { role: desktop, tags: [desktop] }
     # After zsh: 'pipx ensurepath' finds the user's .zshrc

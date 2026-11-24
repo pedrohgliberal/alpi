@@ -17,14 +17,14 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 # Longest first (times of the 2026-10-23 full run), so a long one does not start last
-QUICK=(user failures catalog secureboot memory upstream boot flags asus common services debian13 ubuntu2604
+QUICK=(user failures catalog secureboot memory upstream boot flags asus common services dns debian13 ubuntu2604
        ubuntu2404 unsupported)
 FULL=(debian13-personal ubuntu2604-personal ubuntu2404-personal user el10-work bootstrap fedora44-personal fedora45-personal failures
-      catalog update secureboot memory upstream ubuntu2604 ubuntu2404 boot flags asus common services debian13
+      catalog update secureboot memory upstream ubuntu2604 ubuntu2404 boot flags asus common services dns debian13
       unsupported)
 # Every scenario with an apt instance (Debian 13, Ubuntu 26.04 and 24.04), for work on the apt code paths
 APT=(debian13-personal ubuntu2604-personal ubuntu2404-personal user bootstrap failures update secureboot memory
-     ubuntu2604 ubuntu2404 boot services debian13 unsupported)
+     ubuntu2604 ubuntu2404 boot services dns debian13 unsupported)
 JOBS=${ALPI_JOBS:-4}
 
 case "${1:-quick}" in

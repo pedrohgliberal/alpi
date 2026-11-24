@@ -257,7 +257,7 @@ class TestFeatures:
             "alpi_resolve", "alpi_support", "alpi_apt_components", "alpi_apt_simulation", "alpi_canonical", "alpi_features", "alpi_nvidia_pre_turing", "alpi_nvidia_foreign", "alpi_repos", "alpi_feature_ids",
             "alpi_flatpak_overrides", "alpi_cedilla_xwayland", "alpi_zram_plan", "alpi_xwayland_entries", "alpi_steam_launcher", "alpi_luks_aliases", "alpi_invalid_luks", "alpi_zsh_aliases", "alpi_pipx_name", "alpi_pipx_plan",
             "alpi_appimage_release", "alpi_github_release", "alpi_upstream_missing", "alpi_upstream_package_current",
-            "alpi_release_headers",
+            "alpi_release_headers", "alpi_dns_connections", "alpi_dns_invalid", "alpi_dns_plan",
         }
 
 
@@ -930,3 +930,86 @@ def test_release_headers_without_a_token(token):
 ])
 def test_release_headers_keep_the_token_from_other_hosts(url):
     assert "Authorization" not in alpi.alpi_release_headers(url, "t0k")
+
+
+# --- Fixed DNS (roles/dns) ------------------------------------------------------------------
+
+U1 = "11111111-2222-4333-8444-555555555555"
+U2 = "22222222-2222-4333-8444-555555555555"
+V4 = ["1.1.1.1", "1.0.0.1"]
+V6 = ["2606:4700:4700::1111", "2606:4700:4700::1001"]
+OURS = "auto\n1.1.1.1,1.0.0.1\nyes\nauto\n2606\\:4700\\:4700\\:\\:1111,2606\\:4700\\:4700\\:\\:1001\nyes"
+FRESH = "auto\n\nno\nauto\n\nno"
+
+
+def read(stdout, uuid=U1, name="Home", rc=0):
+    return {"item": {"uuid": uuid, "name": name}, "rc": rc, "stdout": stdout}
+
+
+def test_dns_connections_custom_replaces_the_picker_list():
+    sel = {U1: "Home", U2: "Office"}
+    assert alpi.alpi_dns_connections(None, sel) == [{"uuid": U1, "name": "Home"}, {"uuid": U2, "name": "Office"}]
+    assert alpi.alpi_dns_connections([U2, U2.upper()], sel) == [{"uuid": U2, "name": U2}]
+    assert alpi.alpi_dns_connections({U2: None}, sel) == [{"uuid": U2, "name": U2}]
+    assert alpi.alpi_dns_connections([], sel) == []
+    assert alpi.alpi_dns_connections(None, None) == []
+
+
+def test_dns_invalid_checks_addresses_families_and_uuids():
+    ok = [{"uuid": U1, "name": "Home"}]
+    assert alpi.alpi_dns_invalid(V4, V6, ok) == []
+    assert alpi.alpi_dns_invalid(V4, [], ok) == []
+    errors = alpi.alpi_dns_invalid(["1.1.1", "2606:4700::1"], ["1.1.1.1"], [{"uuid": "home", "name": "x"}])
+    assert len(errors) == 3
+    assert "1.1.1, 2606:4700::1" in errors[0] and "1.1.1.1" in errors[1] and "home" in errors[2]
+    assert "both empty" in alpi.alpi_dns_invalid([], [], ok)[0]
+    assert "must be a list" in alpi.alpi_dns_invalid("1.1.1.1", V6, ok)[0]
+
+
+def test_nm_values_unescape_ipv6():
+    assert alpi._nm_values("2606\\:4700\\:\\:1,1.1.1.1") == ["2606:4700::1", "1.1.1.1"]
+    assert alpi._nm_values("") == []
+
+
+def test_dns_plan_on_sets_what_differs_and_reapplies_active_devices():
+    plan = alpi.alpi_dns_plan([read(FRESH), read(OURS, U2, "Office")], V4, V6, True,
+                              f"{U1}:wlp2s0\n{U2}:enp3s0\nlo-uuid:lo")
+    assert plan == {"modify": [{"uuid": U1, "name": "Home", "device": "wlp2s0", "args": [
+        "ipv4.dns", "1.1.1.1 1.0.0.1", "ipv4.ignore-auto-dns", "yes",
+        "ipv6.dns", "2606:4700:4700::1111 2606:4700:4700::1001", "ipv6.ignore-auto-dns", "yes"]}],
+        "missing": [], "kept": []}
+
+
+def test_dns_plan_on_fixes_order_and_auto_dns_and_skips_families_without_servers():
+    # Same servers, other order: set again; IPv6 disabled: left alone
+    out = "auto\n1.0.0.1,1.1.1.1\nyes\ndisabled\n\nno"
+    plan = alpi.alpi_dns_plan([read(out)], V4, V6, True)
+    assert plan["modify"][0]["args"] == ["ipv4.dns", "1.1.1.1 1.0.0.1", "ipv4.ignore-auto-dns", "yes"]
+    assert plan["modify"][0]["device"] == ""
+    # Right servers, automatic DNS still on: set
+    out = "auto\n1.1.1.1,1.0.0.1\nno\nignore\n\nno"
+    assert alpi.alpi_dns_plan([read(out)], V4, V6, True)["modify"][0]["args"][-1] == "yes"
+    # IPv6 written longhand by nmcli compares equal
+    longhand = OURS.replace("2606\\:4700\\:4700\\:\\:1111", "2606\\:4700\\:4700\\:0\\:0\\:0\\:0\\:1111")
+    assert alpi.alpi_dns_plan([read(longhand)], V4, V6, True)["modify"] == []
+    # No IPv6 servers configured: IPv6 untouched
+    assert alpi.alpi_dns_plan([read(FRESH)], V4, [], True)["modify"][0]["args"] == [
+        "ipv4.dns", "1.1.1.1 1.0.0.1", "ipv4.ignore-auto-dns", "yes"]
+
+
+def test_dns_plan_reports_missing_connections():
+    plan = alpi.alpi_dns_plan([read("", U2, "Gone", rc=10), read(OURS)], V4, V6, True)
+    assert plan == {"modify": [], "missing": ["Gone"], "kept": []}
+
+
+def test_dns_plan_off_restores_only_alpis_servers():
+    own = "auto\n9.9.9.9\nyes\nauto\n\nno"
+    plan = alpi.alpi_dns_plan([read(OURS), read(own, U2, "Own"), read(FRESH, U2, "Fresh")], V4, V6, False)
+    assert plan["modify"] == [{"uuid": U1, "name": "Home", "device": "", "args": [
+        "ipv4.dns", "", "ipv4.ignore-auto-dns", "no", "ipv6.dns", "", "ipv6.ignore-auto-dns", "no"]}]
+    assert plan["kept"] == ["Own"]
+    # Only IPv4 is ALPI's: IPv4 restored, the user's IPv6 kept
+    mixed = "auto\n1.1.1.1,1.0.0.1\nyes\nauto\nfd00\\:\\:53\nyes"
+    plan = alpi.alpi_dns_plan([read(mixed)], V4, V6, False)
+    assert plan["modify"][0]["args"] == ["ipv4.dns", "", "ipv4.ignore-auto-dns", "no"]
+    assert plan["kept"] == ["Home"]

@@ -9,7 +9,9 @@ command), then a review of the changes before saving. The repository defaults st
 choice is saved to host_vars/127.0.0.1/selection.yml as differences from the defaults
 (packages_selection_add/_skip, features_selection, zsh_aliases_selection), so defaults added to
 the repository later still arrive with git pull. Hardware features (NVIDIA, ASUS…) follow
-detection and are not listed; veto them in custom.yml.
+detection and are not listed; veto them in custom.yml. With the dns feature on, it offers the
+NetworkManager connection in use now for the fixed DNS servers and keeps the chosen ones in
+dns_connections_selection ({uuid: name}; group_vars/all/dns.yml).
 
 ./bootstrap.sh runs it; run it again at any time to change the choice. ALPI_PICKER=text (or
 --ui text) uses plain prompts instead of whiptail.
@@ -77,7 +79,7 @@ def load_data(root, distro, major):
     gv = root / "group_vars"
     data = {}
     # zsh: the aliases; ai_tools and desktop: values their commands show (antigravity_ide_dir…)
-    for name in ("catalog", "packages", "features", "picker", "zsh", "ai_tools", "desktop"):
+    for name in ("catalog", "packages", "features", "picker", "zsh", "ai_tools", "desktop", "dns"):
         data.update(load_yaml(gv / "all" / f"{name}.yml"))
     # Same layering as group_by in env_setup: family_<os_family>, os_<distro>, os_<distro>_<major>
     for group in (f"family_{FAMILIES[distro]}", f"os_{distro}", f"os_{distro}_{major}"):
@@ -267,6 +269,89 @@ def selection(features, packages, feats_on, pkgs_on, saved, catalog, aliases=Non
     return out, dropped
 
 
+def nm_fields(line):
+    """One line of nmcli -t output as its fields: split on unescaped ':', then '\\:' and '\\\\'
+    unescaped (a connection named "My Wi:Fi" comes out as My Wi\\:Fi)."""
+    fields, cur, i = [], "", 0
+    while i < len(line):
+        if line[i] == "\\" and i + 1 < len(line):
+            cur, i = cur + line[i + 1], i + 2
+            continue
+        if line[i] == ":":
+            fields.append(cur)
+            cur = ""
+        else:
+            cur += line[i]
+        i += 1
+    return fields + [cur]
+
+
+def default_route_devices(proc="/proc/net"):
+    """Devices of the default routes, IPv4's first (no 'ip' command needed: minimal images lack
+    it)."""
+    out = []
+    try:
+        with open(Path(proc) / "route") as f:
+            for line in list(f)[1:]:
+                cols = line.split()
+                if len(cols) > 7 and cols[1] == "00000000" and cols[7] == "00000000":
+                    out.append(cols[0])
+    except OSError:
+        pass
+    try:
+        with open(Path(proc) / "ipv6_route") as f:
+            for line in f:
+                cols = line.split()
+                if len(cols) == 10 and cols[0] == "0" * 32 and cols[1] == "00" and cols[9] != "lo":
+                    out.append(cols[9])
+    except OSError:
+        pass
+    return list(dict.fromkeys(out))
+
+
+def active_connections(run=subprocess.run):
+    """NetworkManager's active connections as dicts (uuid, name, type, device); [] without
+    NetworkManager."""
+    try:
+        r = run(["nmcli", "-t", "-g", "UUID,NAME,TYPE,DEVICE", "connection", "show", "--active"],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    except OSError:
+        return []
+    if r.returncode != 0:
+        return []
+    keys = ("uuid", "name", "type", "device")
+    return [dict(zip(keys, nm_fields(line))) for line in r.stdout.splitlines() if line.strip()]
+
+
+def current_connection(active, devices, skip_types):
+    """The connection in use now: the active one on the default route's device, else the first
+    active one; VPNs, tunnels, bridges and loopback (skip_types) never. None when there is none."""
+    usable = [c for c in active if c.get("type") not in set(skip_types or [])]
+    for device in devices:
+        for c in usable:
+            if c.get("device") == device:
+                return c
+    return usable[0] if usable else None
+
+
+def dns_connections(current, saved, confirm, write=print):
+    """The connections for the fixed DNS servers ({uuid: name}): the saved ones, plus the current
+    one when confirm(question) says yes. A saved one keeps its place and takes the current name."""
+    out = dict(saved or {})
+    if current is None:
+        write("No active NetworkManager connection: none added for the fixed DNS servers "
+              "(run ./pick.py again while connected, or alpi-dns after ALPI's run).")
+        return out
+    uuid, name = current["uuid"], current.get("name") or current["uuid"]
+    if uuid in out:
+        out[uuid] = name
+        write(f"Fixed DNS servers: '{name}' is already listed.")
+    elif confirm(f"Use the fixed DNS servers on the connection in use now, '{name}' ({current.get('type', '?')})? "
+                 "Other connections keep their own DNS."):
+        out[uuid] = name
+    return out
+
+
 def write_selection(path, sel):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -434,16 +519,27 @@ def main(argv=None):
         print(f"Cancelled: {output} left unchanged.")
         return 0
     feats_on, pkgs_on, zsh_on = ({c.id for c in items if c.id in checked} for items in (features, packages, zsh))
+    dns = dict(saved.get("dns_connections_selection") or {})
+    if "dns" in feats_on:
+        current = current_connection(active_connections(), default_route_devices(),
+                                     data.get("dns_skip_types"))
+        if ui == "whiptail":
+            confirm = lambda q: _whiptail("--yesno", q, "10", WIDTH) is not None
+        else:
+            confirm = lambda q: input(f"{q} [Y/n] ").strip().lower() in ("", "y", "yes")
+        dns = dns_connections(current, dns, confirm)
 
     sel, dropped = selection(features, packages, feats_on, pkgs_on, saved, data["alpi_catalog"], aliases,
                              zsh, zsh_on)
     for raw in dropped:
         print(f"WARNING: '{raw}' is no longer in the catalog; dropped from the selection.")
+    sel["dns_connections_selection"] = dns
     write_selection(output, sel)
     print(f"Selection saved to {output}: {len(sel['packages_selection_add'])} added, "
           f"{len(sel['packages_selection_skip'])} skipped, features changed: "
           f"{', '.join(f'{k}={v}' for k, v in sel['features_selection'].items()) or 'none'}; zsh aliases "
-          f"changed: {', '.join(f'{k}={v}' for k, v in sel['zsh_aliases_selection'].items()) or 'none'}.")
+          f"changed: {', '.join(f'{k}={v}' for k, v in sel['zsh_aliases_selection'].items()) or 'none'}"
+          f"{'; DNS connections: ' + ', '.join(dns.values()) if dns else ''}.")
     return 0
 
 

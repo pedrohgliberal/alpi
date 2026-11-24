@@ -15,7 +15,7 @@ _golden:
     org.gtk.Gtk3theme.Breeze, org.kde.kpat, com.markopejic.downloader,
     com.mattjakeman.ExtensionManager, de.haeckerfelix.Fragments, com.github.unrud.VideoDownloader]
   features: {amd: true, antigravity_cli: true, antigravity_ide: true, asus: true, claude_code: true, clamav: true,
-    intel: true, nvidia: true, steam: true, virtualbox: true}
+    dns: false, intel: true, nvidia: true, steam: true, virtualbox: true}
   repos: [crb, epel, rpmfusion-free, rpmfusion-nonfree, brave-browser, gh-cli, code, virtualbox, almalinux-nvidia]
   unavailable: [gstreamer1-plugins-bad-free-extras, chkrootkit, unhide, argyllcms, steam, asusctl,
     supergfxctl, asusctl-rog-gui, mesa-va-drivers-freeworld, libva-utils, vdpauinfo]

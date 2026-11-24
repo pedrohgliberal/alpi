@@ -1,0 +1,19 @@
+---
+# Fixed DNS servers (feature 'dns', off by default; roles/dns, PROPOSAL "Decisions (2026-11-24)"):
+# set only on the NetworkManager connections chosen for it, never on whatever is active when ALPI
+# runs, so work networks and captive portals keep their own DNS. The picker (pick.py) offers the
+# connection active when the feature is turned on and saves its UUID in selection.yml
+# (dns_connections_selection, {uuid: name}); dns_connections in custom.yml (a list of UUIDs or
+# {uuid: name}) replaces that list. Other connections: alpi-dns, a script in ~/.local/bin that ALPI
+# installs but never runs. Turning the feature off gives the listed connections their own DNS back
+# where they still have exactly these servers.
+# Overridable in custom.yml, in order of preference (Cloudflare, then Google). An empty list leaves
+# that IP family alone.
+dns_ipv4: [1.1.1.1, 1.0.0.1, 8.8.8.8, 8.8.4.4]
+dns_ipv6: ["2606:4700:4700::1111", "2606:4700:4700::1001", "2001:4860:4860::8888", "2001:4860:4860::8844"]
+
+# Connection types the picker and alpi-dns never pick as "the current connection" (nmcli's TYPE):
+# tunnels and bridges ride on another connection, whose DNS is the one to set
+dns_skip_types: [vpn, wireguard, tun, bridge, loopback]
+
+dns_script: "{{ user_home }}/.local/bin/alpi-dns"

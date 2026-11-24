@@ -1,0 +1,27 @@
+---
+- name: DNS | Guard against running on the host
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: DNS | Require ALPI_TARGET
+      ansible.builtin.assert:
+        that: lookup('env', 'ALPI_TARGET') | length > 0
+        fail_msg: ALPI_TARGET is not set; this scenario must target its containers. Set it in molecule.yml.
+        quiet: true
+
+# Play-level environment reaches fact gathering too: env_setup sees the sudo user
+- name: DNS | env_setup + roles/dns + reminders as user alpi
+  hosts: all
+  become: true
+  environment:
+    SUDO_USER: alpi
+  tasks:
+    - name: DNS | Environment setup
+      ansible.builtin.import_tasks: ../../tasks/env_setup.yml
+
+    - name: DNS | Fixed DNS servers
+      ansible.builtin.import_role:
+        name: dns
+
+    - name: DNS | Reminders
+      ansible.builtin.import_tasks: ../../tasks/reminders.yml

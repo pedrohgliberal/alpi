@@ -1,0 +1,8 @@
+---
+# As the picker writes it (selection.yml) plus custom.yml's feature switch
+features: {dns: true}
+dns_connections_selection:
+  0d5e0001-0000-4000-8000-000000000001: Home
+  0d5e0002-0000-4000-8000-000000000002: Dummy
+  0d5e0003-0000-4000-8000-000000000003: V6 ignored
+  0d5e0009-0000-4000-8000-000000000009: Gone
