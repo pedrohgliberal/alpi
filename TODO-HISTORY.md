@@ -364,3 +364,9 @@ final wording; the VM checklist steps live in `tests/vm-checklist.md`).
   refused the connection) and `services` (podman container state) failed transiently. All four
   passed when rerun on `915e3f6`, and the user chose to tag without a second full run. Konsole's
   file links were checked on noir (`docs(todo): v1.9.0 tagged`).
+- **2026-11-24** `v1.10.0` tagged on `8465bd9`: fixed DNS servers on the connections chosen in the
+  picker, and `alpi-dns` for the others (issue #3, `8465bd9`). The full run on `8465bd9`'s code
+  passed 22 of 23 scenarios, the new `dns` one included. `bootstrap` failed on its exact key list
+  for `selection.yml`, which now has `dns_connections_selection`; the fix is in `8465bd9`, and the
+  scenario passed when rerun on it. The user chose to tag without a second full run
+  (`docs(todo): v1.10.0 tagged`).
